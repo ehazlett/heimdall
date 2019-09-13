@@ -67,7 +67,7 @@ func (s *Server) Run() error {
 			return
 		}
 		logrus.Debugf("config: id=%s", id)
-		io.WriteString(session, config+"\n")
+		io.WriteString(session, config)
 	})
 
 	pubKeyOption := ssh.PublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
