@@ -34,6 +34,16 @@ func main() {
 			Usage: "path to host key",
 			Value: "/etc/ssh/ssh_host_rsa_key",
 		},
+		cli.StringFlag{
+			Name:  "subnet, s",
+			Usage: "subnet for ip allocation",
+			Value: "10.199.254.0/24",
+		},
+		cli.StringFlag{
+			Name:  "redis, r",
+			Usage: "redis url",
+			Value: "redis://127.0.0.1:6379",
+		},
 	}
 	app.Before = func(cx *cli.Context) error {
 		if cx.Bool("debug") {
@@ -47,6 +57,8 @@ func main() {
 			ListenPort:  cx.Int("port"),
 			KeysPath:    cx.String("key-dir"),
 			HostKeyPath: cx.String("host-key"),
+			RedisURL:    cx.String("redis"),
+			Subnet:      cx.String("subnet"),
 		}
 		srv, err := NewServer(cfg)
 		if err != nil {
