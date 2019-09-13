@@ -1,15 +1,29 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"sync"
+	"time"
 
+	v1 "github.com/crosbymichael/guard/api/v1"
 	"github.com/gliderlabs/ssh"
+	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+)
+
+const (
+	ipsKey          = "gatekeeper/ips"
+	configKeyPrefix = "gatekeeper/config/"
 )
 
 type ServerConfig struct {
@@ -19,6 +33,9 @@ type ServerConfig struct {
 	HostKeyPath string
 	RedisURL    string
 	Subnet      string
+	GuardAddr   string
+	GuardTunnel string
+	GuardDNS    string
 }
 
 type Server struct {
@@ -43,15 +60,14 @@ func (s *Server) Run() error {
 	}
 
 	ssh.Handle(func(session ssh.Session) {
-		//authorizedKey := gossh.MarshalAuthorizedKey(session.PublicKey())
 		id := s.getID(session.PublicKey())
-		ip, ipnet, err := s.getOrAllocateIP(id, s.cfg.Subnet)
+		config, err := s.getConfig(id)
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
-		logrus.Debugf("config: id=%s ip=%s net=%s", id, ip, ipnet)
-		io.WriteString(session, ip.String()+"\n")
+		logrus.Debugf("config: id=%s", id)
+		io.WriteString(session, config+"\n")
 	})
 
 	pubKeyOption := ssh.PublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
@@ -65,7 +81,7 @@ func (s *Server) Run() error {
 	if _, err := os.Stat(s.cfg.HostKeyPath); err == nil {
 		opts = append(opts, ssh.HostKeyFile(s.cfg.HostKeyPath))
 	}
-	return ssh.ListenAndServe(fmt.Sprintf(":%d", s.cfg.ListenPort), nil, pubKeyOption)
+	return ssh.ListenAndServe(fmt.Sprintf(":%d", s.cfg.ListenPort), nil, opts...)
 }
 
 func (s *Server) loadKeys() error {
@@ -111,4 +127,64 @@ func (s *Server) isAuthorized(ctx ssh.Context, key ssh.PublicKey) bool {
 		"addr": ctx.RemoteAddr(),
 	}).Warn("access denied")
 	return false
+}
+
+func (s *Server) getConfig(id string) (string, error) {
+	c, err := s.getConn()
+	if err != nil {
+		return "", err
+	}
+	defer c.Close()
+	key := path.Join(configKeyPrefix, id)
+	cfg, err := redis.String(c.Do("GET", key))
+	if err != nil && err != redis.ErrNil {
+		return "", err
+	}
+	if cfg != "" {
+		return cfg, nil
+	}
+
+	conn, err := grpc.Dial(s.cfg.GuardAddr, grpc.WithInsecure())
+	if err != nil {
+		return "", errors.Wrap(err, "error connecting to guard server")
+	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	client := v1.NewWireguardClient(conn)
+
+	ip, ipnet, err := s.getOrAllocateIP(id, s.cfg.Subnet)
+	if err != nil {
+		return "", err
+	}
+
+	r, err := client.NewPeer(ctx, &v1.NewPeerRequest{
+		ID:      s.cfg.GuardTunnel,
+		PeerID:  id,
+		Address: ip.String() + "/32",
+	})
+	if err != nil {
+		return "", err
+	}
+	// generate peer tunnel config
+	t := &v1.Tunnel{
+		PrivateKey: r.Peer.PrivateKey,
+		Address:    r.Peer.AllowedIPs[0],
+		DNS:        s.cfg.GuardDNS,
+		Peers: []*v1.Peer{
+			{
+				ID:         r.Tunnel.ID,
+				PublicKey:  r.Tunnel.PublicKey,
+				Endpoint:   net.JoinHostPort(r.Tunnel.Endpoint, r.Tunnel.ListenPort),
+				AllowedIPs: []string{ipnet.String()},
+			},
+		},
+	}
+	b := bytes.NewBuffer(nil)
+	t.Render(b)
+	if _, err := c.Do("SET", key, b.String()); err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }

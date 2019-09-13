@@ -8,10 +8,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-const (
-	ipsKey = "gatekeeper/ips"
-)
-
 type subnetRange struct {
 	Start  net.IP
 	End    net.IP

@@ -44,12 +44,26 @@ func main() {
 			Usage: "redis url",
 			Value: "redis://127.0.0.1:6379",
 		},
+		cli.StringFlag{
+			Name:  "guard-addr",
+			Usage: "guard server address",
+			Value: "10.199.199.1:10100",
+		},
+		cli.StringFlag{
+			Name:  "guard-tunnel",
+			Usage: "guard tunnel to use for peers",
+			Value: "guard0",
+		},
+		cli.StringFlag{
+			Name:  "guard-dns",
+			Usage: "dns to use for peers",
+			Value: "10.199.254.1",
+		},
 	}
 	app.Before = func(cx *cli.Context) error {
 		if cx.Bool("debug") {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
-
 		return nil
 	}
 	app.Action = func(cx *cli.Context) error {
@@ -59,6 +73,9 @@ func main() {
 			HostKeyPath: cx.String("host-key"),
 			RedisURL:    cx.String("redis"),
 			Subnet:      cx.String("subnet"),
+			GuardAddr:   cx.String("guard-addr"),
+			GuardTunnel: cx.String("guard-tunnel"),
+			GuardDNS:    cx.String("guard-dns"),
 		}
 		srv, err := NewServer(cfg)
 		if err != nil {
