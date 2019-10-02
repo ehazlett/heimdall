@@ -1,4 +1,4 @@
-module github.com/ehazlett/gatekeeper
+module github.com/stellarproject/gatekeeper
 
 go 1.12
 
