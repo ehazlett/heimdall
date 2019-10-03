@@ -25,13 +25,13 @@ import "runtime"
 
 var (
 	// Name is the name of the application
-	Name = "gatekeeper"
+	Name = "heimdall"
 
 	// Version defines the application version
 	Version = "0.1.0"
 
 	// Description is the application description
-	Description = "stellarproject gatekeeper"
+	Description = "darknet router"
 
 	// Build will be overwritten automatically by the build system
 	Build = "-dev"

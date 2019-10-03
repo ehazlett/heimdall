@@ -1,13 +1,16 @@
 /*
 	Copyright 2019 Stellar Project
+
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
 	Software without restriction, including without limitation the rights to use, copy,
 	modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 	and to permit persons to whom the Software is furnished to do so, subject to the
 	following conditions:
+
 	The above copyright notice and this permission notice shall be included in all copies
 	or substantial portions of the Software.
+
 	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
 	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
@@ -16,22 +19,80 @@
 	USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package main
+package heimdall
 
 import (
-	"crypto/sha256"
-	"fmt"
+	"net"
+	"sort"
 
-	"github.com/gliderlabs/ssh"
-	"github.com/gomodule/redigo/redis"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
-func (s *Server) getConn() (redis.Conn, error) {
-	return redis.DialURL(s.cfg.RedisURL)
+// NodeID returns a unique local node ID
+func NodeID() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		panic(err)
+	}
+
+	// sort
+	sort.SliceStable(ifaces, func(i, j int) bool { return ifaces[i].Name < ifaces[j].Name })
+
+	var i net.Interface
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+
+		i = iface
+		break
+	}
+
+	s := uuid.NewSHA1(uuid.Nil, i.HardwareAddr)
+	return s.String()
 }
 
-func (s *Server) getID(key ssh.PublicKey) string {
-	h := sha256.New()
-	h.Write(key.Marshal())
-	return fmt.Sprintf("%x", h.Sum(nil))
+// GetIP returns the first non-local IP address for the system
+func GetIP() string {
+	ip := "127.0.0.1"
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		logrus.Warnf("unable to detect network interfaces")
+		return ip
+	}
+	for _, i := range ifaces {
+		a := getInterfaceIP(i)
+		if a != "" {
+			return a
+		}
+	}
+
+	return ip
+}
+
+func getInterfaceIP(iface net.Interface) string {
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return ""
+	}
+	for _, addr := range addrs {
+		var ip net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ip = v.IP
+		case *net.IPAddr:
+			ip = v.IP
+		}
+		// skip loopback
+		if ip.IsLoopback() {
+			return ""
+		}
+		if ip.To4() == nil {
+			return ""
+		}
+		return ip.To4().String()
+	}
+
+	return ""
 }
