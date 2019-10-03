@@ -23,6 +23,7 @@ package server
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
@@ -30,9 +31,21 @@ import (
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
+var (
+	// ErrInvalidAuth is returned when an invalid cluster key is specified upon connect
+	ErrInvalidAuth = errors.New("invalid cluster key specified")
+)
+
 // Connect is called when a peer wants to connect to the node
 func (s *Server) Connect(ctx context.Context, req *v1.ConnectRequest) (*v1.ConnectResponse, error) {
 	logrus.Debugf("connect request from %s", req.ID)
+	key, err := s.getClusterKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.ClusterKey != key {
+		return nil, ErrInvalidAuth
+	}
 	data, err := redis.Bytes(s.local(ctx, "GET", masterKey))
 	if err != nil {
 		return nil, err

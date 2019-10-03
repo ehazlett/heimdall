@@ -22,6 +22,7 @@ message Master {
 
 message ConnectRequest {
         string id = 1 [(gogoproto.customname) = "ID"];
+        string cluster_key = 2;
 }
 
 message ConnectResponse {

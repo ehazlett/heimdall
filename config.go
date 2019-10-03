@@ -29,6 +29,8 @@ type Config struct {
 	GRPCAddress string
 	// GRPCPeerAddress is the peer address to join
 	GRPCPeerAddress string
+	// ClusterKey is a preshared key for cluster peers
+	ClusterKey string
 	// RedisURL is the uri to the redis backend
 	RedisURL string
 	// AdvertiseRedisURL is the uri to the public redis backend

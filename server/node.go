@@ -60,7 +60,7 @@ func (s *Server) configureNode() error {
 				logrus.Warn(err)
 				continue
 			}
-			m, err := c.Connect()
+			m, err := c.Connect(s.cfg.ClusterKey)
 			if err != nil {
 				c.Close()
 				logrus.Warn(err)
@@ -149,13 +149,17 @@ func (s *Server) replicaMonitor() {
 func (s *Server) masterHeartbeat() {
 	logrus.Debugf("starting master heartbeat: ttl=%s", heartbeatInterval)
 	// initial update
-	if err := s.updateMasterInfo(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), heartbeatInterval)
+	defer cancel()
+
+	logrus.Infof("cluster master key=%s", s.cfg.ClusterKey)
+	if err := s.updateMasterInfo(ctx); err != nil {
 		logrus.Error(err)
 	}
 
 	t := time.NewTicker(heartbeatInterval)
 	for range t.C {
-		if err := s.updateMasterInfo(); err != nil {
+		if err := s.updateMasterInfo(ctx); err != nil {
 			logrus.Error(err)
 			continue
 		}
@@ -193,8 +197,11 @@ func (s *Server) joinMaster(m *v1.Master) error {
 	return nil
 }
 
-func (s *Server) updateMasterInfo() error {
+func (s *Server) updateMasterInfo(ctx context.Context) error {
 	// update master info
+	if _, err := s.master(ctx, "SET", clusterKey, s.cfg.ClusterKey); err != nil {
+		return err
+	}
 	m := &v1.Master{
 		ID:          s.cfg.ID,
 		GRPCAddress: s.cfg.GRPCAddress,
@@ -205,27 +212,28 @@ func (s *Server) updateMasterInfo() error {
 		return errors.Wrap(err, "error marshalling master info")
 	}
 
-	if _, err := s.master(context.Background(), "SET", masterKey, data); err != nil {
+	if _, err := s.master(ctx, "SET", masterKey, data); err != nil {
 		return errors.Wrap(err, "error setting master info")
 	}
 
-	if _, err := s.master(context.Background(), "EXPIRE", masterKey, int(heartbeatInterval.Seconds())); err != nil {
+	if _, err := s.master(ctx, "EXPIRE", masterKey, int(heartbeatInterval.Seconds())); err != nil {
 		return errors.Wrap(err, "error setting expire for master info")
 	}
 	return nil
 }
 
 func (s *Server) nodeHeartbeat() {
-	logrus.Debugf("starting node heartbeat: ttl=%s", heartbeatInterval)
-	t := time.NewTicker(heartbeatInterval)
+	logrus.Debugf("starting node heartbeat: ttl=%s", nodeHeartbeatInterval)
+	ctx := context.Background()
+	t := time.NewTicker(nodeHeartbeatInterval)
 	key := fmt.Sprintf("%s:%s", nodesKey, s.cfg.ID)
 	for range t.C {
-		if _, err := s.master(context.Background(), "SET", key, s.cfg.GRPCAddress); err != nil {
+		if _, err := s.master(ctx, "SET", key, s.cfg.GRPCAddress); err != nil {
 			logrus.Error(err)
 			continue
 		}
 
-		if _, err := s.master(context.Background(), "EXPIRE", key, nodeHeartbeatExpiry); err != nil {
+		if _, err := s.master(ctx, "EXPIRE", key, nodeHeartbeatExpiry); err != nil {
 			logrus.Error(err)
 			continue
 		}

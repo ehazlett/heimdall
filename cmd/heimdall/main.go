@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/stellarproject/heimdall"
 	"github.com/stellarproject/heimdall/version"
@@ -76,6 +77,12 @@ func main() {
 			Usage:  "grpc address to join a peer",
 			EnvVar: "HEIMDALL_PEER",
 		},
+		cli.StringFlag{
+			Name:   "cluster-key",
+			Usage:  "preshared key for cluster peer joins",
+			Value:  generateKey(),
+			EnvVar: "HEIMDALL_CLUSTER_KEY",
+		},
 	}
 	app.Before = func(c *cli.Context) error {
 		if c.Bool("debug") {
@@ -89,4 +96,8 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func generateKey() string {
+	return uuid.New().String()
 }

@@ -28,10 +28,11 @@ import (
 )
 
 // Connect attempts to connect to the peer and returns the master info
-func (c *Client) Connect() (*v1.Master, error) {
+func (c *Client) Connect(key string) (*v1.Master, error) {
 	ctx := context.Background()
 	resp, err := c.heimdallClient.Connect(ctx, &v1.ConnectRequest{
-		ID: c.id,
+		ID:         c.id,
+		ClusterKey: key,
 	})
 	if err != nil {
 		return nil, err

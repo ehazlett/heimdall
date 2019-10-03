@@ -40,14 +40,16 @@ import (
 
 const (
 	masterKey   = "heimdall:master"
+	clusterKey  = "heimdall:key"
 	nodesKey    = "heimdall:nodes"
 	nodeJoinKey = "heimdall:join"
 )
 
 var (
-	empty               = &ptypes.Empty{}
-	heartbeatInterval   = time.Second * 15
-	nodeHeartbeatExpiry = 86400
+	empty                 = &ptypes.Empty{}
+	heartbeatInterval     = time.Second * 5
+	nodeHeartbeatInterval = time.Second * 60
+	nodeHeartbeatExpiry   = 86400
 )
 
 type Server struct {
@@ -97,7 +99,7 @@ func (s *Server) Run() error {
 		}
 		defer c.Close()
 
-		master, err := c.Connect()
+		master, err := c.Connect(s.cfg.ClusterKey)
 		if err != nil {
 			return err
 		}
@@ -161,6 +163,10 @@ func getPool(u string) *redis.Pool {
 
 func (s *Server) getClient(addr string) (*client.Client, error) {
 	return client.NewClient(s.cfg.ID, addr)
+}
+
+func (s *Server) getClusterKey(ctx context.Context) (string, error) {
+	return redis.String(s.local(ctx, "GET", clusterKey))
 }
 
 func (s *Server) local(ctx context.Context, cmd string, args ...interface{}) (interface{}, error) {
