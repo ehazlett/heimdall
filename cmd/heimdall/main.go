@@ -89,11 +89,17 @@ func main() {
 			Value:  "10.254.0.0/16",
 			EnvVar: "HEIMDALL_PEER_NETWORK",
 		},
+		cli.StringFlag{
+			Name:   "gateway-ip",
+			Usage:  "IP used for peer communication",
+			Value:  heimdall.GetIP(),
+			EnvVar: "HEIMDALL_GATEWAY_IP",
+		},
 		cli.IntFlag{
-			Name:   "wireguard-port",
-			Usage:  "wireguard port for peers",
+			Name:   "gateway-port",
+			Usage:  "port for peer communication",
 			Value:  10100,
-			EnvVar: "HEIMDALL_WIREGUARD_PORT",
+			EnvVar: "HEIMDALL_GATEWAY_PORT",
 		},
 	}
 	app.Before = func(c *cli.Context) error {

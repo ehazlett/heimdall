@@ -33,8 +33,10 @@ type Config struct {
 	ClusterKey string
 	// PeerNetwork is the subnet that will be used for cluster peers
 	PeerNetwork string
-	// WireguardPort is the peer port used for Wireguard
-	WireguardPort int
+	// GatewayIP is the IP used for peer communication
+	GatewayIP string
+	// GatewayPort is the port used for peer communication
+	GatewayPort int
 	// RedisURL is the uri to the redis backend
 	RedisURL string
 	// AdvertiseRedisURL is the uri to the public redis backend

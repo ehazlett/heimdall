@@ -29,12 +29,17 @@ message ConnectResponse {
         Master master = 1;
 }
 
+message KeyPair {
+        string private_key = 1;
+        string public_key = 2;
+}
+
 message Node {
         string id = 1 [(gogoproto.customname) = "ID"];
         string addr = 2;
-        string private_key = 3;
-        uint64 listen_port = 4;
-        string gateway_address = 5;
+        KeyPair keypair = 3 [(gogoproto.customname) = "KeyPair"];
+        string gateway_ip = 4 [(gogoproto.customname) = "GatewayIP"];
+        uint64 gateway_port = 5;
 }
 
 message NodesRequest {}
@@ -44,8 +49,8 @@ message NodesResponse {
 }
 
 message Peer {
-        string private_key = 1;
-        string public_key = 2;
+        string id = 1 [(gogoproto.customname) = "ID"];
+        KeyPair keypair = 2 [(gogoproto.customname) = "KeyPair"];
         repeated string allowed_ips = 3 [(gogoproto.customname) = "AllowedIPs"];
         string endpoint = 4;
 }

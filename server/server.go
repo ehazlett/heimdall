@@ -29,6 +29,7 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
@@ -42,18 +43,21 @@ import (
 const (
 	masterKey   = "heimdall:master"
 	clusterKey  = "heimdall:key"
+	keypairsKey = "heimdall:keypairs"
 	nodesKey    = "heimdall:nodes"
 	nodeJoinKey = "heimdall:join"
 	peersKey    = "heimdall:peers"
+	ipsKey      = "heimdall:ips"
 
 	wireguardConfigPath = "/etc/wireguard/darknet.conf"
 )
 
 var (
-	empty                 = &ptypes.Empty{}
-	heartbeatInterval     = time.Second * 5
-	nodeHeartbeatInterval = time.Second * 60
-	nodeHeartbeatExpiry   = 86400
+	empty                    = &ptypes.Empty{}
+	masterHeartbeatInterval  = time.Second * 5
+	nodeHeartbeatInterval    = time.Second * 60
+	nodeHeartbeatExpiry      = 86400
+	peerConfigUpdateInterval = time.Second * 10
 )
 
 type Server struct {
@@ -122,11 +126,19 @@ func (s *Server) Run() error {
 		}
 	}
 
+	if _, err := s.getOrCreateKeyPair(ctx, s.cfg.ID); err != nil {
+		return err
+	}
+
 	if err := s.updatePeerInfo(ctx); err != nil {
 		return err
 	}
 
-	go s.nodeHeartbeat()
+	// start node heartbeat to update in redis
+	go s.nodeHeartbeat(ctx)
+
+	// start peer config updater to configure wireguard as peers join
+	go s.updatePeerConfig(ctx)
 
 	// start listener for pub/sub
 	errCh := make(chan error, 1)
@@ -170,12 +182,49 @@ func getPool(u string) *redis.Pool {
 	return pool
 }
 
+func (s *Server) getOrCreateKeyPair(ctx context.Context, id string) (*v1.KeyPair, error) {
+	key := s.getKeyPairKey(id)
+	keyData, err := redis.Bytes(s.master(ctx, "GET", key))
+	if err != nil {
+		if err != redis.ErrNil {
+			return nil, err
+		}
+		logrus.Debugf("generating new keypair for %s", s.cfg.ID)
+		privateKey, publicKey, err := generateWireguardKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		keyPair := &v1.KeyPair{
+			PrivateKey: privateKey,
+			PublicKey:  publicKey,
+		}
+		data, err := proto.Marshal(keyPair)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := s.master(ctx, "SET", key, data); err != nil {
+			return nil, err
+		}
+		return keyPair, nil
+	}
+
+	var keyPair v1.KeyPair
+	if err := proto.Unmarshal(keyData, &keyPair); err != nil {
+		return nil, err
+	}
+	return &keyPair, nil
+}
+
 func (s *Server) getNodeKey(id string) string {
 	return fmt.Sprintf("%s:%s", nodesKey, id)
 }
 
 func (s *Server) getPeerKey(id string) string {
 	return fmt.Sprintf("%s:%s", peersKey, id)
+}
+
+func (s *Server) getKeyPairKey(id string) string {
+	return fmt.Sprintf("%s:%s", keypairsKey, id)
 }
 
 func (s *Server) getClient(addr string) (*client.Client, error) {

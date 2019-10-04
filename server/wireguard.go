@@ -32,12 +32,14 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
 const (
-	defaultInterface  = "darknet"
-	wireguardTemplate = `# managed by heimdall
+	defaultWireguardInterface = "darknet"
+	wireguardTemplate         = `# managed by heimdall
 [Interface]
 PrivateKey = {{ .PrivateKey }}
 ListenPort = {{ .ListenPort }}
@@ -46,7 +48,7 @@ PostUp = iptables -A FORWARD -i {{ .Iface }} -j ACCEPT; iptables -t nat -A POSTR
 PostDown = iptables -D FORWARD -i {{ .Iface }} -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i {{ .Iface }} -j ACCEPT; ip6tables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 {{ range .Peers }}
 [Peer]
-PublicKey = {{ .PublicKey }}
+PublicKey = {{ .KeyPair.PublicKey }}
 AllowedIPs = {{ allowedIPs .AllowedIPs }}
 Endpoint = {{ .Endpoint }}
 {{ end }}
@@ -65,28 +67,28 @@ type wireguardConfig struct {
 	Peers      []*v1.Peer
 }
 
-func generateNodeWireguardConfig(cfg *wireguardConfig) (*os.File, error) {
+func generateNodeWireguardConfig(cfg *wireguardConfig) (string, error) {
 	f, err := ioutil.TempFile("", "heimdall-wireguard-")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	t, err := template.New("wireguard").Funcs(template.FuncMap{
 		"allowedIPs": allowedIPs,
 	}).Parse(wireguardTemplate)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if err := os.MkdirAll(filepath.Dir(wireguardConfigPath), 0755); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if err := t.Execute(f, cfg); err != nil {
-		return nil, err
+		return "", err
 	}
 	f.Close()
 
-	return f, nil
+	return f.Name(), nil
 }
 
 func generateWireguardKeys(ctx context.Context) (string, string, error) {
@@ -105,10 +107,29 @@ func generateWireguardKeys(ctx context.Context) (string, string, error) {
 	return privateKey, publicKey, nil
 }
 
+func restartWireguardTunnel(ctx context.Context) error {
+	tunnelName := strings.Replace(filepath.Base(wireguardConfigPath), filepath.Ext(filepath.Base(wireguardConfigPath)), "", 1)
+	logrus.Infof("restarting tunnel %s", tunnelName)
+	d, err := wgquick(ctx, "down", tunnelName)
+	if err != nil {
+		return errors.Wrap(err, string(d))
+	}
+	u, err := wgquick(ctx, "up", tunnelName)
+	if err != nil {
+		return errors.Wrap(err, string(u))
+	}
+	return nil
+}
+
 func wg(ctx context.Context, in io.Reader, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "wg", args...)
 	if in != nil {
 		cmd.Stdin = in
 	}
+	return cmd.CombinedOutput()
+}
+
+func wgquick(ctx context.Context, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, "wg-quick", args...)
 	return cmd.CombinedOutput()
 }

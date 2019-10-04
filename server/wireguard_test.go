@@ -45,25 +45,27 @@ Endpoint = 100.100.100.100:10000
 
 `
 	cfg := &wireguardConfig{
-		Iface:      "darknet",
+		Iface:      defaultWireguardInterface,
 		PrivateKey: "SERVER-PRIVATE-KEY",
 		ListenPort: 10000,
 		Address:    "1.2.3.4:10000",
 		Peers: []*v1.Peer{
 			{
-				PrivateKey: "PEER-PRIVATE-KEY",
-				PublicKey:  "PEER-PUBLIC-KEY",
+				KeyPair: &v1.KeyPair{
+					PrivateKey: "PEER-PRIVATE-KEY",
+					PublicKey:  "PEER-PUBLIC-KEY",
+				},
 				AllowedIPs: []string{"10.100.0.0/24", "10.254.0.0/16"},
 				Endpoint:   "100.100.100.100:10000",
 			},
 		},
 	}
-	f, err := generateWireguardConfig(cfg)
+	configPath, err := generateNodeWireguardConfig(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(f.Name())
-	data, err := ioutil.ReadFile(f.Name())
+	defer os.Remove(configPath)
+	data, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		t.Fatal(err)
 	}

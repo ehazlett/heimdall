@@ -23,8 +23,6 @@ package server
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -33,31 +31,34 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/heimdall"
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
 func (s *Server) configureNode() error {
 	ctx := context.Background()
-	nodes, err := redis.Strings(s.local(ctx, "KEYS", s.getNodeKey("*")))
+	nodeKeys, err := redis.Strings(s.local(ctx, "KEYS", s.getNodeKey("*")))
 	if err != nil {
 		return err
 	}
 	// attempt to connect to existing
-	if len(nodes) > 0 {
-		for _, node := range nodes {
-			addr, err := redis.String(s.local(ctx, "GET", node))
+	if len(nodeKeys) > 0 {
+		for _, nodeKey := range nodeKeys {
+			nodeData, err := redis.Bytes(s.local(ctx, "GET", nodeKey))
 			if err != nil {
 				logrus.Warn(err)
 				continue
 			}
+			var node v1.Node
+			if err := proto.Unmarshal(nodeData, &node); err != nil {
+				return err
+			}
 			// ignore self
-			if addr == s.cfg.GRPCAddress {
+			if node.Addr == s.cfg.GRPCAddress {
 				continue
 			}
 
-			logrus.Infof("attempting to join existing node %s", addr)
-			c, err := s.getClient(addr)
+			logrus.Infof("attempting to join existing node %s", node.Addr)
+			c, err := s.getClient(node.Addr)
 			if err != nil {
 				logrus.Warn(err)
 				continue
@@ -125,9 +126,9 @@ func (s *Server) disableReplica() {
 }
 
 func (s *Server) replicaMonitor() {
-	logrus.Debugf("starting replica monitor: ttl=%s", heartbeatInterval)
+	logrus.Debugf("starting replica monitor: ttl=%s", masterHeartbeatInterval)
 	s.replicaCh = make(chan struct{}, 1)
-	t := time.NewTicker(heartbeatInterval)
+	t := time.NewTicker(masterHeartbeatInterval)
 	go func() {
 		for range t.C {
 			if _, err := redis.Bytes(s.local(context.Background(), "GET", masterKey)); err != nil {
@@ -149,9 +150,9 @@ func (s *Server) replicaMonitor() {
 }
 
 func (s *Server) masterHeartbeat() {
-	logrus.Debugf("starting master heartbeat: ttl=%s", heartbeatInterval)
+	logrus.Debugf("starting master heartbeat: ttl=%s", masterHeartbeatInterval)
 	// initial update
-	ctx, cancel := context.WithTimeout(context.Background(), heartbeatInterval)
+	ctx, cancel := context.WithTimeout(context.Background(), masterHeartbeatInterval)
 	defer cancel()
 
 	logrus.Infof("cluster master key=%s", s.cfg.ClusterKey)
@@ -159,7 +160,7 @@ func (s *Server) masterHeartbeat() {
 		logrus.Error(err)
 	}
 
-	t := time.NewTicker(heartbeatInterval)
+	t := time.NewTicker(masterHeartbeatInterval)
 	for range t.C {
 		if err := s.updateMasterInfo(ctx); err != nil {
 			logrus.Error(err)
@@ -218,83 +219,37 @@ func (s *Server) updateMasterInfo(ctx context.Context) error {
 		return errors.Wrap(err, "error setting master info")
 	}
 
-	if _, err := s.master(ctx, "EXPIRE", masterKey, int(heartbeatInterval.Seconds())); err != nil {
+	if _, err := s.master(ctx, "EXPIRE", masterKey, int(masterHeartbeatInterval.Seconds())); err != nil {
 		return errors.Wrap(err, "error setting expire for master info")
 	}
 	return nil
 }
 
-func (s *Server) updatePeerInfo(ctx context.Context) error {
-	// check for existing key
-	endpoint := fmt.Sprintf("%s:%d", heimdall.GetIP(), s.cfg.WireguardPort)
-
-	peer, err := s.getPeerInfo(ctx)
-	if err != nil {
-		return err
-	}
-
-	// TODO: build allowedIPs from routes and peer network
-	allowedIPs := []string{s.cfg.PeerNetwork}
-	ipHash := hashIPs(allowedIPs)
-
-	// check cached info and validate
-	if peer != nil {
-		peerIPHash := hashIPs(peer.AllowedIPs)
-		// if endpoint is the same assume unchanged
-		if peer.Endpoint == endpoint && peerIPHash == ipHash {
-			logrus.Debugf("peer info: public=%s endpoint=%s", peer.PublicKey, peer.Endpoint)
-			return nil
-		}
-	}
-
-	privateKey, publicKey, err := generateWireguardKeys(ctx)
-	if err != nil {
-		return err
-	}
-	// TODO: allowed IPs
-	n := &v1.Peer{
-		PrivateKey: privateKey,
-		PublicKey:  publicKey,
-		AllowedIPs: allowedIPs,
-		Endpoint:   endpoint,
-	}
-
-	logrus.Debugf("peer info: public=%s endpoint=%s", n.PublicKey, n.Endpoint)
-	data, err := proto.Marshal(n)
-	if err != nil {
-		return err
-	}
-	key := s.getPeerKey(s.cfg.ID)
-	if _, err := s.master(ctx, "SET", key, data); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *Server) getPeerInfo(ctx context.Context) (*v1.Peer, error) {
-	key := s.getPeerKey(s.cfg.ID)
-	data, err := redis.Bytes(s.local(ctx, "GET", key))
-	if err != nil {
-		if err == redis.ErrNil {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var peer v1.Peer
-	if err := proto.Unmarshal(data, &peer); err != nil {
-		return nil, err
-	}
-
-	return &peer, nil
-}
-
-func (s *Server) nodeHeartbeat() {
+func (s *Server) nodeHeartbeat(ctx context.Context) {
 	logrus.Debugf("starting node heartbeat: ttl=%s", nodeHeartbeatInterval)
-	ctx := context.Background()
 	t := time.NewTicker(nodeHeartbeatInterval)
 	key := s.getNodeKey(s.cfg.ID)
 	for range t.C {
-		if _, err := s.master(ctx, "SET", key, s.cfg.GRPCAddress); err != nil {
+		keyPair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
+		node := &v1.Node{
+			ID:          s.cfg.ID,
+			Addr:        s.cfg.GRPCAddress,
+			KeyPair:     keyPair,
+			GatewayIP:   s.cfg.GatewayIP,
+			GatewayPort: uint64(s.cfg.GatewayPort),
+		}
+
+		data, err := proto.Marshal(node)
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
+
+		if _, err := s.master(ctx, "SET", key, data); err != nil {
 			logrus.Error(err)
 			continue
 		}
@@ -304,12 +259,4 @@ func (s *Server) nodeHeartbeat() {
 			continue
 		}
 	}
-}
-
-func hashIPs(ips []string) string {
-	h := sha256.New()
-	for _, ip := range ips {
-		h.Write([]byte(ip))
-	}
-	return fmt.Sprintf("%x", h.Sum(nil))
 }
