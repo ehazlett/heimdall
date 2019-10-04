@@ -83,6 +83,18 @@ func main() {
 			Value:  generateKey(),
 			EnvVar: "HEIMDALL_CLUSTER_KEY",
 		},
+		cli.StringFlag{
+			Name:   "peer-network",
+			Usage:  "subnet to be used for peers",
+			Value:  "10.254.0.0/16",
+			EnvVar: "HEIMDALL_PEER_NETWORK",
+		},
+		cli.IntFlag{
+			Name:   "wireguard-port",
+			Usage:  "wireguard port for peers",
+			Value:  10100,
+			EnvVar: "HEIMDALL_WIREGUARD_PORT",
+		},
 	}
 	app.Before = func(c *cli.Context) error {
 		if c.Bool("debug") {

@@ -31,6 +31,10 @@ type Config struct {
 	GRPCPeerAddress string
 	// ClusterKey is a preshared key for cluster peers
 	ClusterKey string
+	// PeerNetwork is the subnet that will be used for cluster peers
+	PeerNetwork string
+	// WireguardPort is the peer port used for Wireguard
+	WireguardPort int
 	// RedisURL is the uri to the redis backend
 	RedisURL string
 	// AdvertiseRedisURL is the uri to the public redis backend

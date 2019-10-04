@@ -23,6 +23,7 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"net/url"
 	"strings"
@@ -32,12 +33,13 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/stellarproject/heimdall"
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
 func (s *Server) configureNode() error {
 	ctx := context.Background()
-	nodes, err := redis.Strings(s.local(ctx, "KEYS", fmt.Sprintf("%s:*", nodesKey)))
+	nodes, err := redis.Strings(s.local(ctx, "KEYS", s.getNodeKey("*")))
 	if err != nil {
 		return err
 	}
@@ -222,11 +224,75 @@ func (s *Server) updateMasterInfo(ctx context.Context) error {
 	return nil
 }
 
+func (s *Server) updatePeerInfo(ctx context.Context) error {
+	// check for existing key
+	endpoint := fmt.Sprintf("%s:%d", heimdall.GetIP(), s.cfg.WireguardPort)
+
+	peer, err := s.getPeerInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	// TODO: build allowedIPs from routes and peer network
+	allowedIPs := []string{s.cfg.PeerNetwork}
+	ipHash := hashIPs(allowedIPs)
+
+	// check cached info and validate
+	if peer != nil {
+		peerIPHash := hashIPs(peer.AllowedIPs)
+		// if endpoint is the same assume unchanged
+		if peer.Endpoint == endpoint && peerIPHash == ipHash {
+			logrus.Debugf("peer info: public=%s endpoint=%s", peer.PublicKey, peer.Endpoint)
+			return nil
+		}
+	}
+
+	privateKey, publicKey, err := generateWireguardKeys(ctx)
+	if err != nil {
+		return err
+	}
+	// TODO: allowed IPs
+	n := &v1.Peer{
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+		AllowedIPs: allowedIPs,
+		Endpoint:   endpoint,
+	}
+
+	logrus.Debugf("peer info: public=%s endpoint=%s", n.PublicKey, n.Endpoint)
+	data, err := proto.Marshal(n)
+	if err != nil {
+		return err
+	}
+	key := s.getPeerKey(s.cfg.ID)
+	if _, err := s.master(ctx, "SET", key, data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) getPeerInfo(ctx context.Context) (*v1.Peer, error) {
+	key := s.getPeerKey(s.cfg.ID)
+	data, err := redis.Bytes(s.local(ctx, "GET", key))
+	if err != nil {
+		if err == redis.ErrNil {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var peer v1.Peer
+	if err := proto.Unmarshal(data, &peer); err != nil {
+		return nil, err
+	}
+
+	return &peer, nil
+}
+
 func (s *Server) nodeHeartbeat() {
 	logrus.Debugf("starting node heartbeat: ttl=%s", nodeHeartbeatInterval)
 	ctx := context.Background()
 	t := time.NewTicker(nodeHeartbeatInterval)
-	key := fmt.Sprintf("%s:%s", nodesKey, s.cfg.ID)
+	key := s.getNodeKey(s.cfg.ID)
 	for range t.C {
 		if _, err := s.master(ctx, "SET", key, s.cfg.GRPCAddress); err != nil {
 			logrus.Error(err)
@@ -238,4 +304,12 @@ func (s *Server) nodeHeartbeat() {
 			continue
 		}
 	}
+}
+
+func hashIPs(ips []string) string {
+	h := sha256.New()
+	for _, ip := range ips {
+		h.Write([]byte(ip))
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

@@ -45,6 +45,8 @@ func runServer(cx *cli.Context) error {
 		GRPCAddress:       cx.String("addr"),
 		GRPCPeerAddress:   cx.String("peer"),
 		ClusterKey:        cx.String("cluster-key"),
+		PeerNetwork:       cx.String("peer-network"),
+		WireguardPort:     cx.Int("wireguard-port"),
 		RedisURL:          cx.String("redis-url"),
 		AdvertiseRedisURL: cx.String("advertise-redis-url"),
 	}

@@ -23,6 +23,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"runtime"
 	"runtime/pprof"
@@ -43,6 +44,9 @@ const (
 	clusterKey  = "heimdall:key"
 	nodesKey    = "heimdall:nodes"
 	nodeJoinKey = "heimdall:join"
+	peersKey    = "heimdall:peers"
+
+	wireguardConfigPath = "/etc/wireguard/darknet.conf"
 )
 
 var (
@@ -90,6 +94,7 @@ func (s *Server) GenerateProfile() (string, error) {
 }
 
 func (s *Server) Run() error {
+	ctx := context.Background()
 	// check peer address and make a grpc request for master info if present
 	if s.cfg.GRPCPeerAddress != "" {
 		logrus.Debugf("joining %s", s.cfg.GRPCPeerAddress)
@@ -115,6 +120,10 @@ func (s *Server) Run() error {
 		if err := s.configureNode(); err != nil {
 			return err
 		}
+	}
+
+	if err := s.updatePeerInfo(ctx); err != nil {
+		return err
 	}
 
 	go s.nodeHeartbeat()
@@ -159,6 +168,14 @@ func getPool(u string) *redis.Pool {
 	}, 10)
 
 	return pool
+}
+
+func (s *Server) getNodeKey(id string) string {
+	return fmt.Sprintf("%s:%s", nodesKey, id)
+}
+
+func (s *Server) getPeerKey(id string) string {
+	return fmt.Sprintf("%s:%s", peersKey, id)
 }
 
 func (s *Server) getClient(addr string) (*client.Client, error) {
