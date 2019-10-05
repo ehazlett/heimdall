@@ -227,7 +227,6 @@ func (s *Server) updatePeerConfig(ctx context.Context) error {
 
 	// if config has not change skip update
 	if h == e {
-		logrus.Debugf("config not changed: hash=%s", e)
 		return nil
 	}
 
