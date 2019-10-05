@@ -35,6 +35,60 @@ import (
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
+// Peers returns a list of known peers
+func (s *Server) Peers(ctx context.Context, req *v1.PeersRequest) (*v1.PeersResponse, error) {
+	peers, err := s.getPeers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.PeersResponse{
+		Peers: peers,
+	}, nil
+}
+
+func (s *Server) getPeers(ctx context.Context) ([]*v1.Peer, error) {
+	peerKeys, err := redis.Strings(s.local(ctx, "KEYS", s.getPeerKey("*")))
+	if err != nil {
+		return nil, err
+	}
+	var peers []*v1.Peer
+	for _, peerKey := range peerKeys {
+		data, err := redis.Bytes(s.local(ctx, "GET", peerKey))
+		if err != nil {
+			return nil, err
+		}
+
+		var peer v1.Peer
+		if err := proto.Unmarshal(data, &peer); err != nil {
+			return nil, err
+		}
+		peers = append(peers, &peer)
+	}
+	return peers, nil
+}
+
+func (s *Server) peerUpdater(ctx context.Context) {
+	logrus.Debugf("starting peer config updater: ttl=%s", peerConfigUpdateInterval)
+
+	t := time.NewTicker(peerConfigUpdateInterval)
+
+	for range t.C {
+		uctx, cancel := context.WithTimeout(ctx, peerConfigUpdateInterval)
+		if err := s.updatePeerInfo(uctx); err != nil {
+			logrus.Errorf("updatePeerInfo: %s", err)
+			cancel()
+			continue
+		}
+
+		if err := s.updatePeerConfig(uctx); err != nil {
+			logrus.Errorf("updatePeerConfig: %s", err)
+			cancel()
+			continue
+		}
+		cancel()
+	}
+}
+
 func (s *Server) updatePeerInfo(ctx context.Context) error {
 	keypair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
 	if err != nil {
@@ -43,8 +97,23 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 
 	endpoint := fmt.Sprintf("%s:%d", s.cfg.GatewayIP, s.cfg.GatewayPort)
 
-	// TODO: build allowedIPs from routes and peer network
+	// build allowedIPs from routes and peer network
 	allowedIPs := []string{s.cfg.PeerNetwork}
+	routes, err := s.getRoutes(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, route := range routes {
+		// only add the route if a peer to prevent route duplicate
+		if route.NodeID != s.cfg.ID {
+			continue
+		}
+
+		logrus.Debugf("adding route to allowed IPs: %s", route.Network)
+
+		allowedIPs = append(allowedIPs, route.Network)
+	}
 
 	n := &v1.Peer{
 		ID:         s.cfg.ID,
@@ -57,7 +126,23 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	pHash := hashData(data)
+
 	key := s.getPeerKey(s.cfg.ID)
+	peerData, err := redis.Bytes(s.local(ctx, "GET", key))
+	if err != nil {
+		if err != redis.ErrNil {
+			return err
+		}
+	}
+
+	eHash := hashData(peerData)
+
+	// skip update if same
+	if pHash == eHash {
+		return nil
+	}
+
 	if _, err := s.master(ctx, "SET", key, data); err != nil {
 		return err
 	}
@@ -84,98 +169,86 @@ func (s *Server) getPeerInfo(ctx context.Context, id string) (*v1.Peer, error) {
 	return &peer, nil
 }
 
-func (s *Server) updatePeerConfig(ctx context.Context) {
-	logrus.Debugf("starting peer config updater: ttl=%s", peerConfigUpdateInterval)
-	t := time.NewTicker(peerConfigUpdateInterval)
-
-	configHash := ""
-
-	for range t.C {
-		uctx, cancel := context.WithTimeout(ctx, peerConfigUpdateInterval)
-		peerKeys, err := redis.Strings(s.local(uctx, "KEYS", s.getPeerKey("*")))
-		if err != nil {
-			logrus.Error(err)
-			cancel()
-			continue
-		}
-		var peers []*v1.Peer
-		for _, peerKey := range peerKeys {
-			peerData, err := redis.Bytes(s.local(uctx, "GET", peerKey))
-			if err != nil {
-				logrus.Error(err)
-				cancel()
-				continue
-			}
-			var p v1.Peer
-			if err := proto.Unmarshal(peerData, &p); err != nil {
-				logrus.Error(err)
-				cancel()
-				continue
-			}
-
-			// do not add self as a peer
-			if p.ID == s.cfg.ID {
-				continue
-			}
-
-			peers = append(peers, &p)
-		}
-
-		keyPair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
-		if err != nil {
-			logrus.Error(err)
-			cancel()
-			continue
-		}
-
-		gatewayIP, _, err := s.getOrAllocateIP(ctx, s.cfg.ID)
-		if err != nil {
-			logrus.Error(err)
-			cancel()
-			continue
-		}
-		wireguardCfg := &wireguardConfig{
-			Iface:      defaultWireguardInterface,
-			PrivateKey: keyPair.PrivateKey,
-			ListenPort: s.cfg.GatewayPort,
-			Address:    gatewayIP.String() + "/32",
-			Peers:      peers,
-		}
-
-		tmpCfg, err := generateNodeWireguardConfig(wireguardCfg)
-		if err != nil {
-			logrus.Error(err)
-			cancel()
-			continue
-		}
-
-		h, err := hashConfig(tmpCfg)
-		if err != nil {
-			logrus.Error(err)
-			cancel()
-			continue
-		}
-
-		// if config has not change skip update
-		if h == configHash {
-			continue
-		}
-
-		logrus.Debugf("updating peer config to version %s", h)
-		// update wireguard config
-		if err := os.Rename(tmpCfg, wireguardConfigPath); err != nil {
-			logrus.Error(err)
-			cancel()
-			continue
-		}
-		// reload wireguard
-		if err := restartWireguardTunnel(ctx); err != nil {
-			logrus.Error(err)
-			cancel()
-			continue
-		}
-		configHash = h
+func (s *Server) updatePeerConfig(ctx context.Context) error {
+	peerKeys, err := redis.Strings(s.local(ctx, "KEYS", s.getPeerKey("*")))
+	if err != nil {
+		return err
 	}
+	var peers []*v1.Peer
+	for _, peerKey := range peerKeys {
+		peerData, err := redis.Bytes(s.local(ctx, "GET", peerKey))
+		if err != nil {
+			return err
+		}
+		var p v1.Peer
+		if err := proto.Unmarshal(peerData, &p); err != nil {
+			return err
+		}
+
+		// do not add self as a peer
+		if p.ID == s.cfg.ID {
+			continue
+		}
+
+		peers = append(peers, &p)
+	}
+
+	keyPair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
+	if err != nil {
+		return err
+	}
+
+	gatewayIP, _, err := s.getOrAllocateIP(ctx, s.cfg.ID)
+	if err != nil {
+		return err
+	}
+	wireguardCfg := &wireguardConfig{
+		Iface:      defaultWireguardInterface,
+		PrivateKey: keyPair.PrivateKey,
+		ListenPort: s.cfg.GatewayPort,
+		Address:    gatewayIP.String() + "/32",
+		Peers:      peers,
+	}
+
+	tmpCfg, err := generateNodeWireguardConfig(wireguardCfg)
+	if err != nil {
+		return err
+	}
+
+	h, err := hashConfig(tmpCfg)
+	if err != nil {
+		return err
+	}
+
+	e, err := hashConfig(wireguardConfigPath)
+	if err != nil {
+		return err
+	}
+
+	// if config has not change skip update
+	if h == e {
+		logrus.Debugf("config not changed: hash=%s", e)
+		return nil
+	}
+
+	logrus.Debugf("updating peer config to version %s", h)
+	// update wireguard config
+	if err := os.Rename(tmpCfg, wireguardConfigPath); err != nil {
+		return err
+	}
+
+	// reload wireguard
+	if err := restartWireguardTunnel(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func hashData(data []byte) string {
+	h := sha256.New()
+	h.Write(data)
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func hashConfig(cfgPath string) (string, error) {
@@ -184,7 +257,5 @@ func hashConfig(cfgPath string) (string, error) {
 		return "", err
 	}
 
-	h := sha256.New()
-	h.Write(peerData)
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
+	return hashData(peerData), nil
 }

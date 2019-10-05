@@ -35,7 +35,7 @@ import (
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "actl"
+	app.Name = "hctl"
 	app.Version = version.BuildVersion()
 	app.Author = "@stellarproject"
 	app.Email = ""
@@ -49,7 +49,7 @@ func main() {
 			Name:   "addr, a",
 			Usage:  "heimdall grpc address",
 			Value:  "tcp://127.0.0.1:9000",
-			EnvVar: "ATLAS_ADDR",
+			EnvVar: "HEIMDALL_ADDR",
 		},
 		cli.StringFlag{
 			Name:  "cert, c",
@@ -72,7 +72,11 @@ func main() {
 		}
 		return nil
 	}
-	app.Commands = []cli.Command{}
+	app.Commands = []cli.Command{
+		nodesCommand,
+		peersCommand,
+		routesCommand,
+	}
 
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)

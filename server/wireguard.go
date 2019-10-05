@@ -107,8 +107,12 @@ func generateWireguardKeys(ctx context.Context) (string, string, error) {
 	return privateKey, publicKey, nil
 }
 
+func getTunnelName() string {
+	return strings.Replace(filepath.Base(wireguardConfigPath), filepath.Ext(filepath.Base(wireguardConfigPath)), "", 1)
+}
+
 func restartWireguardTunnel(ctx context.Context) error {
-	tunnelName := strings.Replace(filepath.Base(wireguardConfigPath), filepath.Ext(filepath.Base(wireguardConfigPath)), "", 1)
+	tunnelName := getTunnelName()
 	logrus.Infof("restarting tunnel %s", tunnelName)
 	d, err := wgquick(ctx, "down", tunnelName)
 	if err != nil {

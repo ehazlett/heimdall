@@ -3,15 +3,17 @@ syntax = "proto3";
 package io.stellarproject.heimdall.api.v1;
 
 import "gogoproto/gogo.proto";
-//import "google/protobuf/empty.proto";
-//import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
 
 option go_package = "github.com/stellarproject/heimdall/api/v1;v1";
 
 service Heimdall {
         rpc Connect(ConnectRequest) returns (ConnectResponse);
-        //rpc Nodes(NodesRequest) returns (NodesResponse);
-        //rpc Peers(PeersRequest) returns (PeersResponse);
+        rpc Routes(RoutesRequest) returns (RoutesResponse);
+        rpc CreateRoute(CreateRouteRequest) returns (google.protobuf.Empty);
+        rpc DeleteRoute(DeleteRouteRequest) returns (google.protobuf.Empty);
+        rpc Nodes(NodesRequest) returns (NodesResponse);
+        rpc Peers(PeersRequest) returns (PeersResponse);
 }
 
 message Master {
@@ -53,4 +55,30 @@ message Peer {
         KeyPair keypair = 2 [(gogoproto.customname) = "KeyPair"];
         repeated string allowed_ips = 3 [(gogoproto.customname) = "AllowedIPs"];
         string endpoint = 4;
+}
+
+message PeersRequest {}
+
+message PeersResponse {
+        repeated Peer peers = 1;
+}
+
+message Route {
+        string node_id = 1 [(gogoproto.customname) = "NodeID"];
+        string network = 2;
+}
+
+message CreateRouteRequest {
+        string node_id = 1 [(gogoproto.customname) = "NodeID"];
+        string network = 2;
+}
+
+message DeleteRouteRequest {
+        string network = 1;
+}
+
+message RoutesRequest {}
+
+message RoutesResponse {
+        repeated Route routes = 1;
 }

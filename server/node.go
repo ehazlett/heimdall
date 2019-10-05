@@ -34,6 +34,51 @@ import (
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
+// Nodes returns a list of known nodes
+func (s *Server) Nodes(ctx context.Context, req *v1.NodesRequest) (*v1.NodesResponse, error) {
+	nodes, err := s.getNodes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.NodesResponse{
+		Nodes: nodes,
+	}, nil
+}
+
+func (s *Server) getNodes(ctx context.Context) ([]*v1.Node, error) {
+	nodeKeys, err := redis.Strings(s.local(ctx, "KEYS", s.getNodeKey("*")))
+	if err != nil {
+		return nil, err
+	}
+	var nodes []*v1.Node
+	for _, nodeKey := range nodeKeys {
+		data, err := redis.Bytes(s.local(ctx, "GET", nodeKey))
+		if err != nil {
+			return nil, err
+		}
+
+		var node v1.Node
+		if err := proto.Unmarshal(data, &node); err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, &node)
+	}
+	return nodes, nil
+}
+
+func (s *Server) getNode(ctx context.Context, id string) (*v1.Node, error) {
+	data, err := redis.Bytes(s.local(ctx, "GET", s.getNodeKey(id)))
+	if err != nil {
+		return nil, err
+	}
+
+	var node v1.Node
+	if err := proto.Unmarshal(data, &node); err != nil {
+		return nil, err
+	}
+	return &node, nil
+}
+
 func (s *Server) configureNode() error {
 	ctx := context.Background()
 	nodeKeys, err := redis.Strings(s.local(ctx, "KEYS", s.getNodeKey("*")))

@@ -8,6 +8,7 @@ import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	types "github.com/gogo/protobuf/types"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -409,6 +410,272 @@ func (m *Peer) GetEndpoint() string {
 	return ""
 }
 
+type PeersRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PeersRequest) Reset()         { *m = PeersRequest{} }
+func (m *PeersRequest) String() string { return proto.CompactTextString(m) }
+func (*PeersRequest) ProtoMessage()    {}
+func (*PeersRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{8}
+}
+func (m *PeersRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PeersRequest.Unmarshal(m, b)
+}
+func (m *PeersRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PeersRequest.Marshal(b, m, deterministic)
+}
+func (m *PeersRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PeersRequest.Merge(m, src)
+}
+func (m *PeersRequest) XXX_Size() int {
+	return xxx_messageInfo_PeersRequest.Size(m)
+}
+func (m *PeersRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_PeersRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PeersRequest proto.InternalMessageInfo
+
+type PeersResponse struct {
+	Peers                []*Peer  `protobuf:"bytes,1,rep,name=peers,proto3" json:"peers,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PeersResponse) Reset()         { *m = PeersResponse{} }
+func (m *PeersResponse) String() string { return proto.CompactTextString(m) }
+func (*PeersResponse) ProtoMessage()    {}
+func (*PeersResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{9}
+}
+func (m *PeersResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PeersResponse.Unmarshal(m, b)
+}
+func (m *PeersResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PeersResponse.Marshal(b, m, deterministic)
+}
+func (m *PeersResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PeersResponse.Merge(m, src)
+}
+func (m *PeersResponse) XXX_Size() int {
+	return xxx_messageInfo_PeersResponse.Size(m)
+}
+func (m *PeersResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_PeersResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PeersResponse proto.InternalMessageInfo
+
+func (m *PeersResponse) GetPeers() []*Peer {
+	if m != nil {
+		return m.Peers
+	}
+	return nil
+}
+
+type Route struct {
+	NodeID               string   `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Network              string   `protobuf:"bytes,2,opt,name=network,proto3" json:"network,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Route) Reset()         { *m = Route{} }
+func (m *Route) String() string { return proto.CompactTextString(m) }
+func (*Route) ProtoMessage()    {}
+func (*Route) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{10}
+}
+func (m *Route) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Route.Unmarshal(m, b)
+}
+func (m *Route) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Route.Marshal(b, m, deterministic)
+}
+func (m *Route) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Route.Merge(m, src)
+}
+func (m *Route) XXX_Size() int {
+	return xxx_messageInfo_Route.Size(m)
+}
+func (m *Route) XXX_DiscardUnknown() {
+	xxx_messageInfo_Route.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Route proto.InternalMessageInfo
+
+func (m *Route) GetNodeID() string {
+	if m != nil {
+		return m.NodeID
+	}
+	return ""
+}
+
+func (m *Route) GetNetwork() string {
+	if m != nil {
+		return m.Network
+	}
+	return ""
+}
+
+type CreateRouteRequest struct {
+	NodeID               string   `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	Network              string   `protobuf:"bytes,2,opt,name=network,proto3" json:"network,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CreateRouteRequest) Reset()         { *m = CreateRouteRequest{} }
+func (m *CreateRouteRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateRouteRequest) ProtoMessage()    {}
+func (*CreateRouteRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{11}
+}
+func (m *CreateRouteRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateRouteRequest.Unmarshal(m, b)
+}
+func (m *CreateRouteRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateRouteRequest.Marshal(b, m, deterministic)
+}
+func (m *CreateRouteRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateRouteRequest.Merge(m, src)
+}
+func (m *CreateRouteRequest) XXX_Size() int {
+	return xxx_messageInfo_CreateRouteRequest.Size(m)
+}
+func (m *CreateRouteRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateRouteRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateRouteRequest proto.InternalMessageInfo
+
+func (m *CreateRouteRequest) GetNodeID() string {
+	if m != nil {
+		return m.NodeID
+	}
+	return ""
+}
+
+func (m *CreateRouteRequest) GetNetwork() string {
+	if m != nil {
+		return m.Network
+	}
+	return ""
+}
+
+type DeleteRouteRequest struct {
+	Network              string   `protobuf:"bytes,1,opt,name=network,proto3" json:"network,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeleteRouteRequest) Reset()         { *m = DeleteRouteRequest{} }
+func (m *DeleteRouteRequest) String() string { return proto.CompactTextString(m) }
+func (*DeleteRouteRequest) ProtoMessage()    {}
+func (*DeleteRouteRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{12}
+}
+func (m *DeleteRouteRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteRouteRequest.Unmarshal(m, b)
+}
+func (m *DeleteRouteRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteRouteRequest.Marshal(b, m, deterministic)
+}
+func (m *DeleteRouteRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteRouteRequest.Merge(m, src)
+}
+func (m *DeleteRouteRequest) XXX_Size() int {
+	return xxx_messageInfo_DeleteRouteRequest.Size(m)
+}
+func (m *DeleteRouteRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteRouteRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteRouteRequest proto.InternalMessageInfo
+
+func (m *DeleteRouteRequest) GetNetwork() string {
+	if m != nil {
+		return m.Network
+	}
+	return ""
+}
+
+type RoutesRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RoutesRequest) Reset()         { *m = RoutesRequest{} }
+func (m *RoutesRequest) String() string { return proto.CompactTextString(m) }
+func (*RoutesRequest) ProtoMessage()    {}
+func (*RoutesRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{13}
+}
+func (m *RoutesRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RoutesRequest.Unmarshal(m, b)
+}
+func (m *RoutesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RoutesRequest.Marshal(b, m, deterministic)
+}
+func (m *RoutesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RoutesRequest.Merge(m, src)
+}
+func (m *RoutesRequest) XXX_Size() int {
+	return xxx_messageInfo_RoutesRequest.Size(m)
+}
+func (m *RoutesRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RoutesRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RoutesRequest proto.InternalMessageInfo
+
+type RoutesResponse struct {
+	Routes               []*Route `protobuf:"bytes,1,rep,name=routes,proto3" json:"routes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *RoutesResponse) Reset()         { *m = RoutesResponse{} }
+func (m *RoutesResponse) String() string { return proto.CompactTextString(m) }
+func (*RoutesResponse) ProtoMessage()    {}
+func (*RoutesResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{14}
+}
+func (m *RoutesResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RoutesResponse.Unmarshal(m, b)
+}
+func (m *RoutesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RoutesResponse.Marshal(b, m, deterministic)
+}
+func (m *RoutesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RoutesResponse.Merge(m, src)
+}
+func (m *RoutesResponse) XXX_Size() int {
+	return xxx_messageInfo_RoutesResponse.Size(m)
+}
+func (m *RoutesResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RoutesResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RoutesResponse proto.InternalMessageInfo
+
+func (m *RoutesResponse) GetRoutes() []*Route {
+	if m != nil {
+		return m.Routes
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Master)(nil), "io.stellarproject.heimdall.api.v1.Master")
 	proto.RegisterType((*ConnectRequest)(nil), "io.stellarproject.heimdall.api.v1.ConnectRequest")
@@ -418,6 +685,13 @@ func init() {
 	proto.RegisterType((*NodesRequest)(nil), "io.stellarproject.heimdall.api.v1.NodesRequest")
 	proto.RegisterType((*NodesResponse)(nil), "io.stellarproject.heimdall.api.v1.NodesResponse")
 	proto.RegisterType((*Peer)(nil), "io.stellarproject.heimdall.api.v1.Peer")
+	proto.RegisterType((*PeersRequest)(nil), "io.stellarproject.heimdall.api.v1.PeersRequest")
+	proto.RegisterType((*PeersResponse)(nil), "io.stellarproject.heimdall.api.v1.PeersResponse")
+	proto.RegisterType((*Route)(nil), "io.stellarproject.heimdall.api.v1.Route")
+	proto.RegisterType((*CreateRouteRequest)(nil), "io.stellarproject.heimdall.api.v1.CreateRouteRequest")
+	proto.RegisterType((*DeleteRouteRequest)(nil), "io.stellarproject.heimdall.api.v1.DeleteRouteRequest")
+	proto.RegisterType((*RoutesRequest)(nil), "io.stellarproject.heimdall.api.v1.RoutesRequest")
+	proto.RegisterType((*RoutesResponse)(nil), "io.stellarproject.heimdall.api.v1.RoutesResponse")
 }
 
 func init() {
@@ -425,42 +699,56 @@ func init() {
 }
 
 var fileDescriptor_b6184fc395da86b1 = []byte{
-	// 552 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0xcd, 0x6a, 0xdb, 0x4c,
-	0x14, 0x45, 0xb6, 0xe3, 0xd8, 0x57, 0x4e, 0x02, 0xc3, 0xc7, 0x87, 0x08, 0x14, 0x39, 0xda, 0xd4,
-	0x29, 0x41, 0xc2, 0xea, 0xa6, 0x50, 0xba, 0x88, 0x53, 0x48, 0x45, 0xda, 0xa0, 0x0e, 0xcd, 0xa6,
-	0x1b, 0x33, 0x91, 0x06, 0x67, 0x1a, 0x45, 0x33, 0x9d, 0x19, 0x3b, 0x08, 0x0a, 0x7d, 0xb3, 0x3e,
-	0x46, 0x97, 0x5a, 0xe8, 0x49, 0x8a, 0xa4, 0xb1, 0x49, 0x16, 0x69, 0x5d, 0xe8, 0x6e, 0xee, 0xd1,
-	0x39, 0x57, 0xe7, 0x9e, 0xf9, 0x81, 0x57, 0x0b, 0xa6, 0x6f, 0x96, 0xd7, 0x7e, 0xc2, 0xef, 0x02,
-	0xa5, 0x69, 0x96, 0x11, 0x29, 0x24, 0xff, 0x42, 0x13, 0x1d, 0xdc, 0x50, 0x76, 0x97, 0x92, 0x2c,
-	0x0b, 0x88, 0x60, 0xc1, 0x6a, 0xba, 0xa9, 0x7d, 0x21, 0xb9, 0xe6, 0xe8, 0x88, 0x71, 0xff, 0xb1,
-	0xc2, 0xdf, 0x30, 0x88, 0x60, 0xfe, 0x6a, 0x7a, 0xf8, 0xdf, 0x82, 0x2f, 0x78, 0xc3, 0x0e, 0xea,
-	0x55, 0x2b, 0xf4, 0xbe, 0x43, 0xff, 0x03, 0x51, 0x9a, 0x4a, 0xf4, 0x3f, 0x74, 0x58, 0xea, 0x58,
-	0x63, 0x6b, 0x32, 0x9c, 0xf5, 0xab, 0xd2, 0xed, 0x44, 0x6f, 0x71, 0x87, 0xa5, 0x28, 0x84, 0xd1,
-	0x42, 0x8a, 0x64, 0x4e, 0xd2, 0x54, 0x52, 0xa5, 0x9c, 0x4e, 0xc3, 0x38, 0xa8, 0x4a, 0xd7, 0x3e,
-	0xc7, 0xf1, 0xd9, 0x69, 0x0b, 0x63, 0xbb, 0x26, 0x99, 0x02, 0x1d, 0xc3, 0x50, 0xd2, 0x94, 0xa9,
-	0xf9, 0x52, 0x66, 0x4e, 0xb7, 0x11, 0x8c, 0xaa, 0xd2, 0x1d, 0xe0, 0x1a, 0xbc, 0xc2, 0xef, 0xf1,
-	0xa0, 0xf9, 0x7c, 0x25, 0x33, 0x2f, 0x82, 0xfd, 0x33, 0x9e, 0xe7, 0x34, 0xd1, 0x98, 0x7e, 0x5d,
-	0x52, 0xa5, 0x9f, 0x34, 0xe2, 0x82, 0x9d, 0x64, 0xcb, 0xda, 0xeb, 0xfc, 0x96, 0x16, 0xad, 0x0f,
-	0x0c, 0x06, 0xba, 0xa0, 0x85, 0xf7, 0x09, 0x0e, 0x36, 0xad, 0x94, 0xe0, 0xb9, 0xa2, 0xe8, 0x14,
-	0xfa, 0x77, 0xcd, 0x78, 0x4d, 0x3f, 0x3b, 0x3c, 0xf6, 0xff, 0x18, 0x94, 0xdf, 0xe6, 0x81, 0x8d,
-	0xd0, 0x8b, 0x60, 0xf7, 0x82, 0x16, 0x31, 0x61, 0xb2, 0x76, 0x20, 0x24, 0x5b, 0x11, 0x4d, 0x1b,
-	0x07, 0x56, 0xeb, 0xc0, 0x40, 0x17, 0xb4, 0x40, 0xcf, 0x00, 0xc4, 0xf2, 0x3a, 0x63, 0xc9, 0x03,
-	0x87, 0xc3, 0x16, 0xa9, 0x0d, 0xfe, 0xb4, 0xa0, 0x77, 0xc9, 0x53, 0xfa, 0xe4, 0x88, 0x08, 0x7a,
-	0x75, 0xcc, 0x46, 0xd9, 0xac, 0xd1, 0x47, 0xd8, 0xbd, 0xa5, 0x85, 0x20, 0x4c, 0x36, 0x49, 0xda,
-	0xe1, 0x8b, 0x2d, 0x66, 0x30, 0x8e, 0x67, 0x76, 0x55, 0xba, 0x6b, 0xfb, 0x78, 0xdd, 0x07, 0x9d,
-	0x00, 0x2c, 0x88, 0xa6, 0xf7, 0xa4, 0x98, 0x33, 0xe1, 0xf4, 0x1a, 0x1b, 0x7b, 0x55, 0xe9, 0x0e,
-	0xcf, 0x5b, 0x34, 0x8a, 0xf1, 0xd0, 0x10, 0x22, 0x81, 0x8e, 0x60, 0xb4, 0x66, 0x0b, 0x2e, 0xb5,
-	0xb3, 0x33, 0xb6, 0x26, 0x3d, 0x6c, 0x1b, 0x2c, 0xe6, 0x52, 0x7b, 0xfb, 0x30, 0xaa, 0xe7, 0x52,
-	0x66, 0x0b, 0xbd, 0x4b, 0xd8, 0x33, 0xb5, 0xd9, 0x87, 0x37, 0xb0, 0x93, 0xd7, 0x80, 0x63, 0x8d,
-	0xbb, 0x13, 0x3b, 0x7c, 0xbe, 0xc5, 0x08, 0x75, 0x03, 0xdc, 0xaa, 0xbc, 0x1f, 0x16, 0xf4, 0x62,
-	0xfa, 0x9b, 0x43, 0xfa, 0x20, 0xa4, 0xce, 0x3f, 0x0a, 0x29, 0x00, 0x9b, 0x64, 0x19, 0xbf, 0xa7,
-	0xe9, 0x9c, 0x09, 0xe5, 0x74, 0xc7, 0xdd, 0xc9, 0x70, 0xb6, 0x5f, 0x95, 0x2e, 0x9c, 0xb6, 0x70,
-	0x14, 0x2b, 0x0c, 0x86, 0x12, 0x09, 0x85, 0x0e, 0x61, 0x40, 0xf3, 0x54, 0x70, 0x96, 0xeb, 0x36,
-	0x53, 0xbc, 0xa9, 0xc3, 0x6f, 0x30, 0x78, 0x67, 0xfe, 0x8e, 0x04, 0xec, 0x9a, 0x63, 0x8a, 0xa6,
-	0x5b, 0xb8, 0x7c, 0x7c, 0x3b, 0x0e, 0xc3, 0xbf, 0x91, 0xb4, 0xe9, 0xcf, 0xfc, 0xcf, 0x27, 0x5b,
-	0xbf, 0x2c, 0xaf, 0x57, 0xd3, 0xeb, 0x7e, 0xf3, 0x36, 0xbc, 0xfc, 0x15, 0x00, 0x00, 0xff, 0xff,
-	0x5f, 0xf4, 0xa8, 0x6a, 0x90, 0x04, 0x00, 0x00,
+	// 770 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x56, 0x5d, 0x6b, 0xe3, 0x46,
+	0x14, 0x45, 0xfe, 0x90, 0xed, 0x2b, 0xc7, 0x81, 0xa1, 0x04, 0xe1, 0x52, 0xe4, 0xa8, 0x0f, 0x75,
+	0x4a, 0x90, 0x62, 0x97, 0x42, 0xa1, 0x14, 0x1a, 0x27, 0x6d, 0x2a, 0xd2, 0x06, 0x77, 0xda, 0xbc,
+	0x94, 0x82, 0x91, 0xad, 0xa9, 0xa3, 0x44, 0xf6, 0x4c, 0x47, 0x63, 0x07, 0x3f, 0xf5, 0x9f, 0xf5,
+	0x67, 0xec, 0xa3, 0x1f, 0xfc, 0x47, 0x76, 0x99, 0xd1, 0xc8, 0x6b, 0x6f, 0xc8, 0xae, 0xc2, 0xee,
+	0x9b, 0xee, 0x99, 0x7b, 0xcf, 0x9c, 0x7b, 0xe6, 0x4b, 0xf0, 0xdd, 0x34, 0x16, 0x77, 0x8b, 0xb1,
+	0x37, 0xa1, 0x33, 0x3f, 0x15, 0x24, 0x49, 0x42, 0xce, 0x38, 0xbd, 0x27, 0x13, 0xe1, 0xdf, 0x91,
+	0x78, 0x16, 0x85, 0x49, 0xe2, 0x87, 0x2c, 0xf6, 0x97, 0xbd, 0x6d, 0xec, 0x31, 0x4e, 0x05, 0x45,
+	0xc7, 0x31, 0xf5, 0xf6, 0x2b, 0xbc, 0x6d, 0x46, 0xc8, 0x62, 0x6f, 0xd9, 0x6b, 0x7f, 0x36, 0xa5,
+	0x53, 0xaa, 0xb2, 0x7d, 0xf9, 0x95, 0x15, 0xb6, 0x3f, 0x9f, 0x52, 0x3a, 0x4d, 0x88, 0xaf, 0xa2,
+	0xf1, 0xe2, 0x1f, 0x9f, 0xcc, 0x98, 0x58, 0x65, 0x83, 0xee, 0x7f, 0x60, 0xfe, 0x16, 0xa6, 0x82,
+	0x70, 0x74, 0x04, 0xa5, 0x38, 0xb2, 0x8d, 0x8e, 0xd1, 0x6d, 0x0c, 0xcc, 0xcd, 0xda, 0x29, 0x05,
+	0x97, 0xb8, 0x14, 0x47, 0xa8, 0x0f, 0xcd, 0x29, 0x67, 0x93, 0x51, 0x18, 0x45, 0x9c, 0xa4, 0xa9,
+	0x5d, 0x52, 0x19, 0x87, 0x9b, 0xb5, 0x63, 0x5d, 0xe1, 0xe1, 0xc5, 0x79, 0x06, 0x63, 0x4b, 0x26,
+	0xe9, 0x00, 0x9d, 0x40, 0x83, 0x93, 0x28, 0x4e, 0x47, 0x0b, 0x9e, 0xd8, 0x65, 0x55, 0xd0, 0xdc,
+	0xac, 0x9d, 0x3a, 0x96, 0xe0, 0x2d, 0xfe, 0x15, 0xd7, 0xd5, 0xf0, 0x2d, 0x4f, 0xdc, 0x00, 0x5a,
+	0x17, 0x74, 0x3e, 0x27, 0x13, 0x81, 0xc9, 0xbf, 0x0b, 0x92, 0x8a, 0x67, 0x85, 0x38, 0x60, 0x4d,
+	0x92, 0x85, 0xd4, 0x3a, 0x7a, 0x20, 0xab, 0x4c, 0x07, 0x06, 0x0d, 0x5d, 0x93, 0x95, 0xfb, 0x27,
+	0x1c, 0x6e, 0xa9, 0x52, 0x46, 0xe7, 0x29, 0x41, 0xe7, 0x60, 0xce, 0x54, 0x7b, 0x8a, 0xcf, 0xea,
+	0x9f, 0x78, 0x1f, 0x74, 0xd1, 0xcb, 0xfc, 0xc0, 0xba, 0xd0, 0x0d, 0xa0, 0x76, 0x4d, 0x56, 0xc3,
+	0x30, 0xe6, 0x52, 0x01, 0xe3, 0xf1, 0x32, 0x14, 0x44, 0x29, 0x30, 0x32, 0x05, 0x1a, 0xba, 0x26,
+	0x2b, 0xf4, 0x05, 0x00, 0x5b, 0x8c, 0x93, 0x78, 0xb2, 0xa3, 0xb0, 0x91, 0x21, 0x52, 0xe0, 0x2b,
+	0x03, 0x2a, 0x37, 0x34, 0x22, 0xcf, 0xb6, 0x88, 0xa0, 0x22, 0x6d, 0xd6, 0x95, 0xea, 0x1b, 0xfd,
+	0x0e, 0xb5, 0x07, 0xb2, 0x62, 0x61, 0xcc, 0x95, 0x93, 0x56, 0xff, 0xeb, 0x02, 0x3d, 0x68, 0xc5,
+	0x03, 0x6b, 0xb3, 0x76, 0x72, 0xf9, 0x38, 0xe7, 0x41, 0xa7, 0x00, 0xd3, 0x50, 0x90, 0xc7, 0x70,
+	0x35, 0x8a, 0x99, 0x5d, 0x51, 0x32, 0x0e, 0x36, 0x6b, 0xa7, 0x71, 0x95, 0xa1, 0xc1, 0x10, 0x37,
+	0x74, 0x42, 0xc0, 0xd0, 0x31, 0x34, 0xf3, 0x6c, 0x46, 0xb9, 0xb0, 0xab, 0x1d, 0xa3, 0x5b, 0xc1,
+	0x96, 0xc6, 0x86, 0x94, 0x0b, 0xb7, 0x05, 0x4d, 0xd9, 0x57, 0xaa, 0x97, 0xd0, 0xbd, 0x81, 0x03,
+	0x1d, 0xeb, 0x75, 0xf8, 0x01, 0xaa, 0x73, 0x09, 0xd8, 0x46, 0xa7, 0xdc, 0xb5, 0xfa, 0x5f, 0x15,
+	0x68, 0x41, 0x12, 0xe0, 0xac, 0xca, 0xfd, 0xdf, 0x80, 0xca, 0x90, 0xbc, 0x67, 0x93, 0xee, 0x98,
+	0x54, 0xfa, 0x44, 0x26, 0xf9, 0x60, 0x85, 0x49, 0x42, 0x1f, 0x49, 0x34, 0x8a, 0x59, 0x6a, 0x97,
+	0x3b, 0xe5, 0x6e, 0x63, 0xd0, 0xda, 0xac, 0x1d, 0x38, 0xcf, 0xe0, 0x60, 0x98, 0x62, 0xd0, 0x29,
+	0x01, 0x4b, 0x51, 0x1b, 0xea, 0x64, 0x1e, 0x31, 0x1a, 0xcf, 0x45, 0xe6, 0x29, 0xde, 0xc6, 0xd2,
+	0x20, 0xa9, 0x7f, 0xd7, 0x20, 0x1d, 0xbf, 0x35, 0x88, 0x49, 0xe0, 0x05, 0x06, 0x49, 0x02, 0x9c,
+	0x55, 0xb9, 0x3f, 0x43, 0x15, 0xd3, 0x85, 0x20, 0xe8, 0x4b, 0xa8, 0x49, 0xcb, 0x46, 0x5b, 0x97,
+	0x60, 0xb3, 0x76, 0x4c, 0xe9, 0x65, 0x70, 0x89, 0x4d, 0x39, 0x14, 0x44, 0xc8, 0x86, 0xda, 0x9c,
+	0x88, 0x47, 0xca, 0x1f, 0xf4, 0x4e, 0xcb, 0x43, 0xf7, 0x0f, 0x40, 0x17, 0x9c, 0x84, 0x82, 0x28,
+	0xb6, 0xfc, 0x44, 0x7e, 0x24, 0xa9, 0x07, 0xe8, 0x92, 0x24, 0xe4, 0x1d, 0xd2, 0x9d, 0x7c, 0x63,
+	0x3f, 0xff, 0x10, 0x0e, 0x54, 0xe6, 0xd6, 0x2d, 0x0c, 0xad, 0x1c, 0xd0, 0x76, 0xfd, 0x08, 0x26,
+	0x57, 0x88, 0xf6, 0xab, 0x5b, 0xc0, 0xaf, 0x6c, 0x76, 0x5d, 0xd7, 0x7f, 0x5d, 0x81, 0xfa, 0x2f,
+	0x3a, 0x03, 0x31, 0xa8, 0xe9, 0x9b, 0x03, 0xf5, 0x0a, 0x30, 0xed, 0x5f, 0x58, 0xed, 0xfe, 0x4b,
+	0x4a, 0x74, 0x03, 0x33, 0x30, 0xb3, 0x96, 0xd0, 0x59, 0x51, 0xe9, 0xb9, 0x1d, 0xed, 0xde, 0x0b,
+	0x2a, 0xf4, 0x74, 0x7f, 0x83, 0xb5, 0xb3, 0xae, 0xe8, 0xdb, 0x22, 0x8a, 0x9f, 0xec, 0x83, 0xf6,
+	0x91, 0x97, 0x3d, 0x25, 0x5e, 0xfe, 0x94, 0x78, 0x3f, 0xc9, 0xa7, 0x44, 0xb2, 0xef, 0x2c, 0x70,
+	0x21, 0xf6, 0xa7, 0x1b, 0xe2, 0x59, 0xf6, 0x7b, 0xa8, 0xaa, 0xcb, 0x04, 0xf9, 0x05, 0x6f, 0x8d,
+	0xad, 0x51, 0x67, 0xc5, 0x0b, 0xb4, 0x4f, 0xf7, 0x50, 0x55, 0xe7, 0xb2, 0xd0, 0x5c, 0xbb, 0x27,
+	0xba, 0xd0, 0x5c, 0x7b, 0x47, 0x7e, 0xe0, 0xfd, 0x75, 0x5a, 0xf8, 0x67, 0xe0, 0xfb, 0x65, 0x6f,
+	0x6c, 0x2a, 0x5f, 0xbe, 0x79, 0x13, 0x00, 0x00, 0xff, 0xff, 0x30, 0x53, 0x36, 0x35, 0x43, 0x08,
+	0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -476,6 +764,11 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type HeimdallClient interface {
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
+	Routes(ctx context.Context, in *RoutesRequest, opts ...grpc.CallOption) (*RoutesResponse, error)
+	CreateRoute(ctx context.Context, in *CreateRouteRequest, opts ...grpc.CallOption) (*types.Empty, error)
+	DeleteRoute(ctx context.Context, in *DeleteRouteRequest, opts ...grpc.CallOption) (*types.Empty, error)
+	Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error)
+	Peers(ctx context.Context, in *PeersRequest, opts ...grpc.CallOption) (*PeersResponse, error)
 }
 
 type heimdallClient struct {
@@ -495,9 +788,59 @@ func (c *heimdallClient) Connect(ctx context.Context, in *ConnectRequest, opts .
 	return out, nil
 }
 
+func (c *heimdallClient) Routes(ctx context.Context, in *RoutesRequest, opts ...grpc.CallOption) (*RoutesResponse, error) {
+	out := new(RoutesResponse)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/Routes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heimdallClient) CreateRoute(ctx context.Context, in *CreateRouteRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	out := new(types.Empty)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/CreateRoute", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heimdallClient) DeleteRoute(ctx context.Context, in *DeleteRouteRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	out := new(types.Empty)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/DeleteRoute", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heimdallClient) Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error) {
+	out := new(NodesResponse)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/Nodes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heimdallClient) Peers(ctx context.Context, in *PeersRequest, opts ...grpc.CallOption) (*PeersResponse, error) {
+	out := new(PeersResponse)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/Peers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HeimdallServer is the server API for Heimdall service.
 type HeimdallServer interface {
 	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
+	Routes(context.Context, *RoutesRequest) (*RoutesResponse, error)
+	CreateRoute(context.Context, *CreateRouteRequest) (*types.Empty, error)
+	DeleteRoute(context.Context, *DeleteRouteRequest) (*types.Empty, error)
+	Nodes(context.Context, *NodesRequest) (*NodesResponse, error)
+	Peers(context.Context, *PeersRequest) (*PeersResponse, error)
 }
 
 // UnimplementedHeimdallServer can be embedded to have forward compatible implementations.
@@ -506,6 +849,21 @@ type UnimplementedHeimdallServer struct {
 
 func (*UnimplementedHeimdallServer) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
+}
+func (*UnimplementedHeimdallServer) Routes(ctx context.Context, req *RoutesRequest) (*RoutesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Routes not implemented")
+}
+func (*UnimplementedHeimdallServer) CreateRoute(ctx context.Context, req *CreateRouteRequest) (*types.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRoute not implemented")
+}
+func (*UnimplementedHeimdallServer) DeleteRoute(ctx context.Context, req *DeleteRouteRequest) (*types.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRoute not implemented")
+}
+func (*UnimplementedHeimdallServer) Nodes(ctx context.Context, req *NodesRequest) (*NodesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Nodes not implemented")
+}
+func (*UnimplementedHeimdallServer) Peers(ctx context.Context, req *PeersRequest) (*PeersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Peers not implemented")
 }
 
 func RegisterHeimdallServer(s *grpc.Server, srv HeimdallServer) {
@@ -530,6 +888,96 @@ func _Heimdall_Connect_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Heimdall_Routes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RoutesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).Routes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/Routes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).Routes(ctx, req.(*RoutesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heimdall_CreateRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).CreateRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/CreateRoute",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).CreateRoute(ctx, req.(*CreateRouteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heimdall_DeleteRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).DeleteRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/DeleteRoute",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).DeleteRoute(ctx, req.(*DeleteRouteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heimdall_Nodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).Nodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/Nodes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).Nodes(ctx, req.(*NodesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heimdall_Peers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PeersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).Peers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/Peers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).Peers(ctx, req.(*PeersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Heimdall_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "io.stellarproject.heimdall.api.v1.Heimdall",
 	HandlerType: (*HeimdallServer)(nil),
@@ -537,6 +985,26 @@ var _Heimdall_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Connect",
 			Handler:    _Heimdall_Connect_Handler,
+		},
+		{
+			MethodName: "Routes",
+			Handler:    _Heimdall_Routes_Handler,
+		},
+		{
+			MethodName: "CreateRoute",
+			Handler:    _Heimdall_CreateRoute_Handler,
+		},
+		{
+			MethodName: "DeleteRoute",
+			Handler:    _Heimdall_DeleteRoute_Handler,
+		},
+		{
+			MethodName: "Nodes",
+			Handler:    _Heimdall_Nodes_Handler,
+		},
+		{
+			MethodName: "Peers",
+			Handler:    _Heimdall_Peers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

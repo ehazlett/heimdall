@@ -47,6 +47,7 @@ const (
 	nodesKey    = "heimdall:nodes"
 	nodeJoinKey = "heimdall:join"
 	peersKey    = "heimdall:peers"
+	routesKey   = "heimdall:routes"
 	ipsKey      = "heimdall:ips"
 
 	wireguardConfigPath = "/etc/wireguard/darknet.conf"
@@ -58,8 +59,14 @@ var (
 	nodeHeartbeatInterval    = time.Second * 60
 	nodeHeartbeatExpiry      = 86400
 	peerConfigUpdateInterval = time.Second * 10
+
+	// ErrRouteExists is returned when a requested route is already reserved
+	ErrRouteExists = errors.New("route already reserved")
+	// ErrNodeDoesNotExist is returned when an invalid node is requested
+	ErrNodeDoesNotExist = errors.New("node does not exist")
 )
 
+// Server represents the Heimdall server
 type Server struct {
 	cfg       *heimdall.Config
 	rpool     *redis.Pool
@@ -67,6 +74,7 @@ type Server struct {
 	replicaCh chan struct{}
 }
 
+// NewServer returns a new Heimdall server
 func NewServer(cfg *heimdall.Config) (*Server, error) {
 	pool := getPool(cfg.RedisURL)
 	return &Server{
@@ -130,6 +138,9 @@ func (s *Server) Run() error {
 		return err
 	}
 
+	// ensure wireguard is started
+	_, _ = wgquick(ctx, "up", getTunnelName())
+
 	if err := s.updatePeerInfo(ctx); err != nil {
 		return err
 	}
@@ -138,7 +149,7 @@ func (s *Server) Run() error {
 	go s.nodeHeartbeat(ctx)
 
 	// start peer config updater to configure wireguard as peers join
-	go s.updatePeerConfig(ctx)
+	go s.peerUpdater(ctx)
 
 	// start listener for pub/sub
 	errCh := make(chan error, 1)
@@ -217,6 +228,10 @@ func (s *Server) getOrCreateKeyPair(ctx context.Context, id string) (*v1.KeyPair
 
 func (s *Server) getNodeKey(id string) string {
 	return fmt.Sprintf("%s:%s", nodesKey, id)
+}
+
+func (s *Server) getRouteKey(network string) string {
+	return fmt.Sprintf("%s:%s", routesKey, network)
 }
 
 func (s *Server) getPeerKey(id string) string {
