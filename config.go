@@ -31,7 +31,9 @@ type Config struct {
 	GRPCPeerAddress string
 	// ClusterKey is a preshared key for cluster peers
 	ClusterKey string
-	// PeerNetwork is the subnet that will be used for cluster peers
+	// NodeNetwork is the network for the cluster nodes
+	NodeNetwork string
+	// PeerNetwork is the subnet that is used for cluster peers
 	PeerNetwork string
 	// GatewayIP is the IP used for peer communication
 	GatewayIP string

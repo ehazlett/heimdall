@@ -98,7 +98,29 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 	endpoint := fmt.Sprintf("%s:%d", s.cfg.GatewayIP, s.cfg.GatewayPort)
 
 	// build allowedIPs from routes and peer network
-	allowedIPs := []string{s.cfg.PeerNetwork}
+	allowedIPs := []string{}
+	nodes, err := s.getNodes(ctx)
+	if err != nil {
+		return err
+	}
+
+	logrus.Debugf("nodes: %+v", nodes)
+
+	for _, node := range nodes {
+		// only add the route if a peer to prevent route duplicate
+		if node.ID != s.cfg.ID {
+			continue
+		}
+
+		_, gatewayNet, err := s.getNodeIP(ctx, node.ID)
+		if err != nil {
+			return err
+		}
+
+		logrus.Debugf("peer network %s", gatewayNet)
+		allowedIPs = append(allowedIPs, gatewayNet.String())
+	}
+
 	routes, err := s.getRoutes(ctx)
 	if err != nil {
 		return err
@@ -111,7 +133,6 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 		}
 
 		logrus.Debugf("adding route to allowed IPs: %s", route.Network)
-
 		allowedIPs = append(allowedIPs, route.Network)
 	}
 
@@ -198,7 +219,7 @@ func (s *Server) updatePeerConfig(ctx context.Context) error {
 		return err
 	}
 
-	gatewayIP, _, err := s.getOrAllocateIP(ctx, s.cfg.ID)
+	gatewayIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
 	if err != nil {
 		return err
 	}
@@ -206,7 +227,7 @@ func (s *Server) updatePeerConfig(ctx context.Context) error {
 		Iface:      defaultWireguardInterface,
 		PrivateKey: keyPair.PrivateKey,
 		ListenPort: s.cfg.GatewayPort,
-		Address:    gatewayIP.String() + "/32",
+		Address:    gatewayIP.To4().String() + "/32",
 		Peers:      peers,
 	}
 
@@ -251,6 +272,12 @@ func hashData(data []byte) string {
 }
 
 func hashConfig(cfgPath string) (string, error) {
+	if _, err := os.Stat(cfgPath); err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
 	peerData, err := ioutil.ReadFile(cfgPath)
 	if err != nil {
 		return "", err

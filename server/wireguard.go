@@ -49,7 +49,7 @@ PostDown = iptables -D FORWARD -i {{ .Iface }} -j ACCEPT; iptables -t nat -D POS
 {{ range .Peers }}
 [Peer]
 PublicKey = {{ .KeyPair.PublicKey }}
-AllowedIPs = {{ allowedIPs .AllowedIPs }}
+{{ if .AllowedIPs }}AllowedIPs = {{ allowedIPs .AllowedIPs }}{{ end }}
 Endpoint = {{ .Endpoint }}
 {{ end }}
 `
@@ -114,9 +114,16 @@ func getTunnelName() string {
 func restartWireguardTunnel(ctx context.Context) error {
 	tunnelName := getTunnelName()
 	logrus.Infof("restarting tunnel %s", tunnelName)
-	d, err := wgquick(ctx, "down", tunnelName)
+	d, err := wg(ctx, nil)
 	if err != nil {
-		return errors.Wrap(err, string(d))
+		return err
+	}
+	// only stop if running
+	if string(d) != "" {
+		d, err := wgquick(ctx, "down", tunnelName)
+		if err != nil {
+			return errors.Wrap(err, string(d))
+		}
 	}
 	u, err := wgquick(ctx, "up", tunnelName)
 	if err != nil {

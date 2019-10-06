@@ -41,14 +41,16 @@ import (
 )
 
 const (
-	masterKey   = "heimdall:master"
-	clusterKey  = "heimdall:key"
-	keypairsKey = "heimdall:keypairs"
-	nodesKey    = "heimdall:nodes"
-	nodeJoinKey = "heimdall:join"
-	peersKey    = "heimdall:peers"
-	routesKey   = "heimdall:routes"
-	ipsKey      = "heimdall:ips"
+	masterKey       = "heimdall:master"
+	clusterKey      = "heimdall:key"
+	keypairsKey     = "heimdall:keypairs"
+	nodesKey        = "heimdall:nodes"
+	nodeJoinKey     = "heimdall:join"
+	peersKey        = "heimdall:peers"
+	routesKey       = "heimdall:routes"
+	peerIPsKey      = "heimdall:peerips"
+	nodeIPsKey      = "heimdall:nodeips"
+	nodeNetworksKey = "heimdall:nodenetworks"
 
 	wireguardConfigPath = "/etc/wireguard/darknet.conf"
 )
@@ -134,19 +136,28 @@ func (s *Server) Run() error {
 		}
 	}
 
+	// ensure keypair
 	if _, err := s.getOrCreateKeyPair(ctx, s.cfg.ID); err != nil {
 		return err
 	}
 
-	// ensure wireguard is started
-	_, _ = wgquick(ctx, "up", getTunnelName())
-
-	if err := s.updatePeerInfo(ctx); err != nil {
+	// ensure node network subnet
+	if err := s.ensureNetworkSubnet(ctx); err != nil {
 		return err
 	}
 
 	// start node heartbeat to update in redis
 	go s.nodeHeartbeat(ctx)
+
+	// initial peer info update
+	if err := s.updatePeerInfo(ctx); err != nil {
+		return err
+	}
+
+	// initial config update
+	if err := s.updatePeerConfig(ctx); err != nil {
+		return err
+	}
 
 	// start peer config updater to configure wireguard as peers join
 	go s.peerUpdater(ctx)
@@ -191,6 +202,57 @@ func getPool(u string) *redis.Pool {
 	}, 10)
 
 	return pool
+}
+
+func (s *Server) ensureNetworkSubnet(ctx context.Context) error {
+	network, err := redis.String(s.local(ctx, "GET", s.getNodeNetworkKey(s.cfg.ID)))
+	if err != nil {
+		if err != redis.ErrNil {
+			return err
+		}
+		// allocate initial node subnet
+		r, err := parseSubnetRange(s.cfg.NodeNetwork)
+		if err != nil {
+			return err
+		}
+		// iterate node networks to find first free
+		nodeNetworkKeys, err := redis.Strings(s.local(ctx, "KEYS", s.getNodeNetworkKey("*")))
+		if err != nil {
+			return err
+		}
+		logrus.Debug(nodeNetworkKeys)
+		lookup := map[string]struct{}{}
+		for _, netKey := range nodeNetworkKeys {
+			n, err := redis.String(s.local(ctx, "GET", netKey))
+			if err != nil {
+				return err
+			}
+			lookup[n] = struct{}{}
+		}
+
+		subnet := r.Subnet
+		size, _ := subnet.Mask.Size()
+
+		for {
+			n, ok := nextSubnet(subnet, size)
+			if !ok {
+				return fmt.Errorf("error getting next subnet")
+			}
+			if _, exists := lookup[n.String()]; exists {
+				subnet = n
+				continue
+			}
+			logrus.Debugf("allocated network %s for %s", n.String(), s.cfg.ID)
+			if err := s.updateNodeNetwork(ctx, n.String()); err != nil {
+				return err
+			}
+			break
+		}
+
+		return nil
+	}
+	logrus.Debugf("node network: %s", network)
+	return nil
 }
 
 func (s *Server) getOrCreateKeyPair(ctx context.Context, id string) (*v1.KeyPair, error) {
@@ -240,6 +302,10 @@ func (s *Server) getPeerKey(id string) string {
 
 func (s *Server) getKeyPairKey(id string) string {
 	return fmt.Sprintf("%s:%s", keypairsKey, id)
+}
+
+func (s *Server) getNodeNetworkKey(id string) string {
+	return fmt.Sprintf("%s:%s", nodeNetworksKey, id)
 }
 
 func (s *Server) getClient(addr string) (*client.Client, error) {

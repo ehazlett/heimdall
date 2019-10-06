@@ -45,6 +45,7 @@ func runServer(cx *cli.Context) error {
 		GRPCAddress:       cx.String("addr"),
 		GRPCPeerAddress:   cx.String("peer"),
 		ClusterKey:        cx.String("cluster-key"),
+		NodeNetwork:       cx.String("node-network"),
 		PeerNetwork:       cx.String("peer-network"),
 		GatewayIP:         cx.String("gateway-ip"),
 		GatewayPort:       cx.Int("gateway-port"),

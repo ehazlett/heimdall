@@ -41,7 +41,7 @@ func NodeID() string {
 
 	var i net.Interface
 	for _, iface := range ifaces {
-		if iface.Flags&net.FlagLoopback != 0 {
+		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagPointToPoint != 0 {
 			continue
 		}
 

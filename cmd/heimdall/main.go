@@ -84,9 +84,15 @@ func main() {
 			EnvVar: "HEIMDALL_CLUSTER_KEY",
 		},
 		cli.StringFlag{
+			Name:   "node-network",
+			Usage:  "subnet to be used for nodes",
+			Value:  "10.10.0.0/16",
+			EnvVar: "HEIMDALL_NODE_NETWORK",
+		},
+		cli.StringFlag{
 			Name:   "peer-network",
 			Usage:  "subnet to be used for peers",
-			Value:  "10.254.0.0/16",
+			Value:  "10.51.0.0/16",
 			EnvVar: "HEIMDALL_PEER_NETWORK",
 		},
 		cli.StringFlag{

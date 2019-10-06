@@ -24,6 +24,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"net"
 	"strings"
 
@@ -36,8 +37,55 @@ type subnetRange struct {
 	Subnet *net.IPNet
 }
 
-func (s *Server) getIPs(ctx context.Context) (map[string]net.IP, error) {
-	values, err := redis.StringMap(s.local(ctx, "HGETALL", ipsKey))
+func (s *Server) updateNodeNetwork(ctx context.Context, subnet string) error {
+	if _, err := s.master(ctx, "SET", s.getNodeNetworkKey(s.cfg.ID), subnet); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) getOrAllocatePeerIP(ctx context.Context, id string) (net.IP, *net.IPNet, error) {
+	r, err := parseSubnetRange(s.cfg.PeerNetwork)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ip, err := s.getPeerIP(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if ip != nil {
+		return ip, r.Subnet, nil
+	}
+
+	ip, err = s.allocatePeerIP(ctx, id, r)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ip, r.Subnet, nil
+}
+
+func (s *Server) getNodeIP(ctx context.Context, id string) (net.IP, *net.IPNet, error) {
+	subnet, err := redis.String(s.local(ctx, "GET", s.getNodeNetworkKey(id)))
+	if err != nil {
+		return nil, nil, err
+	}
+	r, err := parseSubnetRange(subnet)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ip := r.Start
+	// assign .1 for router
+	ip[len(ip)-1] = 1
+
+	return ip, r.Subnet, nil
+}
+
+func (s *Server) getPeerIPs(ctx context.Context) (map[string]net.IP, error) {
+	values, err := redis.StringMap(s.local(ctx, "HGETALL", peerIPsKey))
 	if err != nil {
 		return nil, err
 	}
@@ -50,8 +98,22 @@ func (s *Server) getIPs(ctx context.Context) (map[string]net.IP, error) {
 	return ips, nil
 }
 
-func (s *Server) getIP(ctx context.Context, id string) (net.IP, error) {
-	allIPs, err := s.getIPs(ctx)
+func (s *Server) getNodeIPs(ctx context.Context) (map[string]net.IP, error) {
+	values, err := redis.StringMap(s.local(ctx, "HGETALL", nodeIPsKey))
+	if err != nil {
+		return nil, err
+	}
+
+	ips := make(map[string]net.IP, len(values))
+	for id, val := range values {
+		ip := net.ParseIP(string(val))
+		ips[id] = ip
+	}
+	return ips, nil
+}
+
+func (s *Server) getPeerIP(ctx context.Context, id string) (net.IP, error) {
+	allIPs, err := s.getPeerIPs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,31 +124,8 @@ func (s *Server) getIP(ctx context.Context, id string) (net.IP, error) {
 	return nil, nil
 }
 
-func (s *Server) getOrAllocateIP(ctx context.Context, id string) (net.IP, *net.IPNet, error) {
-	r, err := s.parseSubnetRange(s.cfg.PeerNetwork)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ip, err := s.getIP(ctx, id)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if ip != nil {
-		return ip, r.Subnet, nil
-	}
-
-	ip, err = s.allocateIP(ctx, id, r)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return ip, r.Subnet, nil
-}
-
-func (s *Server) allocateIP(ctx context.Context, id string, r *subnetRange) (net.IP, error) {
-	reservedIPs, err := s.getIPs(ctx)
+func (s *Server) allocatePeerIP(ctx context.Context, id string, r *subnetRange) (net.IP, error) {
+	reservedIPs, err := s.getPeerIPs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +149,7 @@ func (s *Server) allocateIP(ctx context.Context, id string, r *subnetRange) (net
 		}
 
 		// save
-		if _, err := s.master(ctx, "HSET", ipsKey, id, ip.String()); err != nil {
+		if _, err := s.master(ctx, "HSET", peerIPsKey, id, ip.String()); err != nil {
 			return nil, err
 		}
 		return ip, nil
@@ -119,14 +158,14 @@ func (s *Server) allocateIP(ctx context.Context, id string, r *subnetRange) (net
 	return nil, fmt.Errorf("no available IPs")
 }
 
-func (s *Server) releaseIP(ctx context.Context, id string) error {
-	ip, err := s.getIP(ctx, id)
+func (s *Server) releasePeerIP(ctx context.Context, id string) error {
+	ip, err := s.getPeerIP(ctx, id)
 	if err != nil {
 		return err
 	}
 
 	if ip != nil {
-		if _, err := s.master(ctx, "HDEL", ipsKey, id); err != nil {
+		if _, err := s.master(ctx, "HDEL", peerIPsKey, id); err != nil {
 			return err
 		}
 	}
@@ -153,7 +192,7 @@ func (s *Server) validIP(ip net.IP) bool {
 
 // parseSubnetRange parses the subnet range
 // format can either be a subnet like 10.0.0.0/8 or range like 10.0.0.100-10.0.0.200/24
-func (s *Server) parseSubnetRange(subnet string) (*subnetRange, error) {
+func parseSubnetRange(subnet string) (*subnetRange, error) {
 	parts := strings.Split(subnet, "-")
 	if len(parts) == 1 {
 		ip, sub, err := net.ParseCIDR(parts[0])
@@ -184,4 +223,80 @@ func (s *Server) parseSubnetRange(subnet string) (*subnetRange, error) {
 		End:    end,
 		Subnet: sub,
 	}, nil
+}
+
+// vendored from
+func nextSubnet(n *net.IPNet, prefix int) (*net.IPNet, bool) {
+	_, currentLast := addressRange(n)
+	mask := net.CIDRMask(prefix, 8*len(currentLast))
+	currentSubnet := &net.IPNet{IP: currentLast.Mask(mask), Mask: mask}
+	_, last := addressRange(currentSubnet)
+	last = inc(last)
+	next := &net.IPNet{IP: last.Mask(mask), Mask: mask}
+	if last.Equal(net.IPv4zero) || last.Equal(net.IPv6zero) {
+		return nil, false
+	}
+	return next, true
+}
+
+func addressRange(network *net.IPNet) (net.IP, net.IP) {
+	firstIP := network.IP
+	prefixLen, bits := network.Mask.Size()
+	if prefixLen == bits {
+		lastIP := make([]byte, len(firstIP))
+		copy(lastIP, firstIP)
+		return firstIP, lastIP
+	}
+
+	firstIPInt, bits := ipToInt(firstIP)
+	hostLen := uint(bits) - uint(prefixLen)
+	lastIPInt := big.NewInt(1)
+	lastIPInt.Lsh(lastIPInt, hostLen)
+	lastIPInt.Sub(lastIPInt, big.NewInt(1))
+	lastIPInt.Or(lastIPInt, firstIPInt)
+
+	return firstIP, intToIP(lastIPInt, bits)
+
+}
+
+func inc(IP net.IP) net.IP {
+	IP = checkIPv4(IP)
+	incIP := make([]byte, len(IP))
+	copy(incIP, IP)
+	for j := len(incIP) - 1; j >= 0; j-- {
+		incIP[j]++
+		if incIP[j] > 0 {
+			break
+		}
+	}
+	return incIP
+}
+
+func ipToInt(ip net.IP) (*big.Int, int) {
+	val := &big.Int{}
+	val.SetBytes([]byte(ip))
+	if len(ip) == net.IPv4len {
+		return val, 32
+	} else if len(ip) == net.IPv6len {
+		return val, 128
+	} else {
+		panic(fmt.Errorf("Unsupported address length %d", len(ip)))
+	}
+}
+
+func intToIP(ipInt *big.Int, bits int) net.IP {
+	ipBytes := ipInt.Bytes()
+	ret := make([]byte, bits/8)
+	for i := 1; i <= len(ipBytes); i++ {
+		ret[len(ret)-i] = ipBytes[len(ipBytes)-i]
+
+	}
+	return net.IP(ret)
+}
+
+func checkIPv4(ip net.IP) net.IP {
+	if v4 := ip.To4(); v4 != nil {
+		return v4
+	}
+	return ip
 }
