@@ -44,7 +44,7 @@ type Client struct {
 
 // NewClient returns a new Atlas client configured with the specified address and options
 func NewClient(id, addr string, opts ...grpc.DialOption) (*Client, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	if len(opts) == 0 {

@@ -40,8 +40,9 @@ message Node {
         string id = 1 [(gogoproto.customname) = "ID"];
         string addr = 2;
         KeyPair keypair = 3 [(gogoproto.customname) = "KeyPair"];
-        string gateway_ip = 4 [(gogoproto.customname) = "GatewayIP"];
-        uint64 gateway_port = 5;
+        string endpoint_ip = 4 [(gogoproto.customname) = "EndpointIP"];
+        uint64 endpoint_port = 5;
+        string gateway_ip = 6 [(gogoproto.customname) = "GatewayIP"];
 }
 
 message NodesRequest {}

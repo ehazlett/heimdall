@@ -35,10 +35,10 @@ type Config struct {
 	NodeNetwork string
 	// PeerNetwork is the subnet that is used for cluster peers
 	PeerNetwork string
-	// GatewayIP is the IP used for peer communication
-	GatewayIP string
+	// EndpointIP is the IP used for peer communication
+	EndpointIP string
 	// GatewayPort is the port used for peer communication
-	GatewayPort int
+	EndpointPort int
 	// RedisURL is the uri to the redis backend
 	RedisURL string
 	// AdvertiseRedisURL is the uri to the public redis backend

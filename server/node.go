@@ -280,12 +280,18 @@ func (s *Server) nodeHeartbeat(ctx context.Context) {
 			logrus.Error(err)
 			continue
 		}
+		nodeIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
+		if err != nil {
+			logrus.Error(err)
+			continue
+		}
 		node := &v1.Node{
-			ID:          s.cfg.ID,
-			Addr:        s.cfg.GRPCAddress,
-			KeyPair:     keyPair,
-			GatewayIP:   s.cfg.GatewayIP,
-			GatewayPort: uint64(s.cfg.GatewayPort),
+			ID:           s.cfg.ID,
+			Addr:         s.cfg.GRPCAddress,
+			KeyPair:      keyPair,
+			EndpointIP:   s.cfg.EndpointIP,
+			EndpointPort: uint64(s.cfg.EndpointPort),
+			GatewayIP:    nodeIP.String(),
 		}
 
 		data, err := proto.Marshal(node)

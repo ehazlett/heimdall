@@ -47,8 +47,8 @@ func runServer(cx *cli.Context) error {
 		ClusterKey:        cx.String("cluster-key"),
 		NodeNetwork:       cx.String("node-network"),
 		PeerNetwork:       cx.String("peer-network"),
-		GatewayIP:         cx.String("gateway-ip"),
-		GatewayPort:       cx.Int("gateway-port"),
+		EndpointIP:        cx.String("endpoint-ip"),
+		EndpointPort:      cx.Int("endpoint-port"),
 		RedisURL:          cx.String("redis-url"),
 		AdvertiseRedisURL: cx.String("advertise-redis-url"),
 	}

@@ -95,7 +95,7 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 		return err
 	}
 
-	endpoint := fmt.Sprintf("%s:%d", s.cfg.GatewayIP, s.cfg.GatewayPort)
+	endpoint := fmt.Sprintf("%s:%d", s.cfg.EndpointIP, s.cfg.EndpointPort)
 
 	// build allowedIPs from routes and peer network
 	allowedIPs := []string{}
@@ -103,8 +103,6 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	logrus.Debugf("nodes: %+v", nodes)
 
 	for _, node := range nodes {
 		// only add the route if a peer to prevent route duplicate
@@ -117,7 +115,6 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 			return err
 		}
 
-		logrus.Debugf("peer network %s", gatewayNet)
 		allowedIPs = append(allowedIPs, gatewayNet.String())
 	}
 
@@ -219,15 +216,17 @@ func (s *Server) updatePeerConfig(ctx context.Context) error {
 		return err
 	}
 
-	gatewayIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
+	gatewayIP, gatewayNet, err := s.getNodeIP(ctx, s.cfg.ID)
 	if err != nil {
 		return err
 	}
+
+	size, _ := gatewayNet.Mask.Size()
 	wireguardCfg := &wireguardConfig{
 		Iface:      defaultWireguardInterface,
 		PrivateKey: keyPair.PrivateKey,
-		ListenPort: s.cfg.GatewayPort,
-		Address:    gatewayIP.To4().String() + "/32",
+		ListenPort: s.cfg.EndpointPort,
+		Address:    fmt.Sprintf("%s/%d", gatewayIP.To4().String(), size),
 		Peers:      peers,
 	}
 

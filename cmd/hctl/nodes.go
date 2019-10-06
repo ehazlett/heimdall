@@ -53,10 +53,10 @@ var listNodesCommand = cli.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
-		fmt.Fprintf(w, "ID\tADDR\tGATEWAY\tPUBLIC KEY\n")
+		fmt.Fprintf(w, "ID\tADDR\tENDPOINT\tGATEWAY\tPUBLIC KEY\n")
 		for _, n := range nodes {
-			gw := fmt.Sprintf("%s:%d", n.GatewayIP, n.GatewayPort)
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", n.ID, n.Addr, gw, n.KeyPair.PublicKey)
+			ep := fmt.Sprintf("%s:%d", n.EndpointIP, n.EndpointPort)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", n.ID, n.Addr, ep, n.GatewayIP, n.KeyPair.PublicKey)
 		}
 		w.Flush()
 
