@@ -25,42 +25,86 @@ import (
 	"context"
 	"errors"
 
-	"github.com/gogo/protobuf/proto"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
 var (
-	// ErrInvalidAuth is returned when an invalid cluster key is specified upon connect
-	ErrInvalidAuth = errors.New("invalid cluster key specified")
-	// ErrNoMaster is returned if there is no configured master yet
-	ErrNoMaster = errors.New("no configured master")
+	// ErrAccessDenied is returned when an unauthorized non-node peer attempts to join
+	ErrAccessDenied = errors.New("access denied")
 )
 
-// Connect is called when a peer wants to connect to the node
+func (s *Server) AuthorizedPeers(ctx context.Context, req *v1.AuthorizedPeersRequest) (*v1.AuthorizedPeersResponse, error) {
+	authorized, err := redis.Strings(s.local(ctx, "SMEMBERS", authorizedPeersKey))
+	if err != nil {
+		return nil, err
+	}
+	return &v1.AuthorizedPeersResponse{
+		IDs: authorized,
+	}, nil
+}
+
+// AuthorizePeer authorizes a peer to the cluster
+func (s *Server) AuthorizePeer(ctx context.Context, req *v1.AuthorizePeerRequest) (*ptypes.Empty, error) {
+	logrus.Debugf("authorizing peer %s", req.ID)
+	if _, err := s.master(ctx, "SADD", authorizedPeersKey, req.ID); err != nil {
+		return nil, err
+	}
+	logrus.Infof("authorized peer %s", req.ID)
+	return empty, nil
+}
+
+// DeauthorizePeer deauthorizes a peer from the cluster
+func (s *Server) DeauthorizePeer(ctx context.Context, req *v1.DeauthorizePeerRequest) (*ptypes.Empty, error) {
+	logrus.Debugf("deauthorizing peer %s", req.ID)
+	if _, err := s.master(ctx, "SREM", authorizedPeersKey, req.ID); err != nil {
+		return nil, err
+	}
+	logrus.Infof("deauthorized peer %s", req.ID)
+	return empty, nil
+}
+
+// Connect is called when a non-node peer wants to connect to the cluster
 func (s *Server) Connect(ctx context.Context, req *v1.ConnectRequest) (*v1.ConnectResponse, error) {
-	logrus.Debugf("connect request from %s", req.ID)
-	key, err := s.getClusterKey(ctx)
+	authorized, err := redis.Bool(s.local(ctx, "SISMEMBER", authorizedPeersKey, req.ID))
 	if err != nil {
 		return nil, err
 	}
-	if req.ClusterKey != key {
-		return nil, ErrInvalidAuth
+	if !authorized {
+		logrus.Warnf("unauthorized request attempt from %s", req.ID)
+		return nil, ErrAccessDenied
 	}
-	data, err := redis.Bytes(s.local(ctx, "GET", masterKey))
+	keyPair, err := s.getOrCreateKeyPair(ctx, req.ID)
 	if err != nil {
-		if err == redis.ErrNil {
-			return nil, ErrNoMaster
-		}
 		return nil, err
 	}
-	var master v1.Master
-	if err := proto.Unmarshal(data, &master); err != nil {
+	nodes, err := s.getNodes(ctx)
+	if err != nil {
 		return nil, err
+	}
+	dnsAddrs := []string{}
+	for _, n := range nodes {
+		dnsAddrs = append(dnsAddrs, n.GatewayIP)
 	}
 
+	peers, err := s.getPeers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ip, _, err := s.getOrAllocatePeerIP(ctx, req.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.updatePeerInfo(ctx, req.ID); err != nil {
+		return nil, err
+	}
+	// save peer
 	return &v1.ConnectResponse{
-		Master: &master,
+		KeyPair: keyPair,
+		Address: ip.String() + "/32",
+		Peers:   peers,
+		DNS:     dnsAddrs,
 	}, nil
 }

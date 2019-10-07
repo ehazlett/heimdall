@@ -49,6 +49,7 @@ func runServer(cx *cli.Context) error {
 		PeerNetwork:       cx.String("peer-network"),
 		EndpointIP:        cx.String("endpoint-ip"),
 		EndpointPort:      cx.Int("endpoint-port"),
+		InterfaceName:     cx.String("interface-name"),
 		RedisURL:          cx.String("redis-url"),
 		AdvertiseRedisURL: cx.String("advertise-redis-url"),
 	}

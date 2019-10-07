@@ -27,42 +27,16 @@ import (
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
-// AuthorizePeer authorizes a new peer to the cluster
-func (c *Client) AuthorizePeer(id string) error {
+// Join attempts to connect to the peer and returns the master info
+func (c *Client) Join(key string) (*v1.Master, error) {
 	ctx := context.Background()
-	if _, err := c.heimdallClient.AuthorizePeer(ctx, &v1.AuthorizePeerRequest{
-		ID: id,
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-// DeauthorizePeer removes a peer from the cluster
-func (c *Client) DeauthorizePeer(id string) error {
-	ctx := context.Background()
-	if _, err := c.heimdallClient.DeauthorizePeer(ctx, &v1.DeauthorizePeerRequest{
-		ID: id,
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-// AuthorizedPeers returns a list of authorized peers
-func (c *Client) AuthorizedPeers() ([]string, error) {
-	ctx := context.Background()
-	resp, err := c.heimdallClient.AuthorizedPeers(ctx, &v1.AuthorizedPeersRequest{})
+	resp, err := c.heimdallClient.Join(ctx, &v1.JoinRequest{
+		ID:         c.id,
+		ClusterKey: key,
+	})
 	if err != nil {
 		return nil, err
 	}
-	return resp.IDs, nil
-}
 
-// Connect requests to connect a peer to the cluster
-func (c *Client) Connect() (*v1.ConnectResponse, error) {
-	ctx := context.Background()
-	return c.heimdallClient.Connect(ctx, &v1.ConnectRequest{
-		ID: c.id,
-	})
+	return resp.Master, nil
 }

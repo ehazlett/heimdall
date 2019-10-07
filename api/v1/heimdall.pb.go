@@ -82,9 +82,92 @@ func (m *Master) GetRedisURL() string {
 	return ""
 }
 
-type ConnectRequest struct {
+type JoinRequest struct {
 	ID                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	ClusterKey           string   `protobuf:"bytes,2,opt,name=cluster_key,json=clusterKey,proto3" json:"cluster_key,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *JoinRequest) Reset()         { *m = JoinRequest{} }
+func (m *JoinRequest) String() string { return proto.CompactTextString(m) }
+func (*JoinRequest) ProtoMessage()    {}
+func (*JoinRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{1}
+}
+func (m *JoinRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_JoinRequest.Unmarshal(m, b)
+}
+func (m *JoinRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_JoinRequest.Marshal(b, m, deterministic)
+}
+func (m *JoinRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_JoinRequest.Merge(m, src)
+}
+func (m *JoinRequest) XXX_Size() int {
+	return xxx_messageInfo_JoinRequest.Size(m)
+}
+func (m *JoinRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_JoinRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_JoinRequest proto.InternalMessageInfo
+
+func (m *JoinRequest) GetID() string {
+	if m != nil {
+		return m.ID
+	}
+	return ""
+}
+
+func (m *JoinRequest) GetClusterKey() string {
+	if m != nil {
+		return m.ClusterKey
+	}
+	return ""
+}
+
+type JoinResponse struct {
+	Master               *Master  `protobuf:"bytes,1,opt,name=master,proto3" json:"master,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *JoinResponse) Reset()         { *m = JoinResponse{} }
+func (m *JoinResponse) String() string { return proto.CompactTextString(m) }
+func (*JoinResponse) ProtoMessage()    {}
+func (*JoinResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{2}
+}
+func (m *JoinResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_JoinResponse.Unmarshal(m, b)
+}
+func (m *JoinResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_JoinResponse.Marshal(b, m, deterministic)
+}
+func (m *JoinResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_JoinResponse.Merge(m, src)
+}
+func (m *JoinResponse) XXX_Size() int {
+	return xxx_messageInfo_JoinResponse.Size(m)
+}
+func (m *JoinResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_JoinResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_JoinResponse proto.InternalMessageInfo
+
+func (m *JoinResponse) GetMaster() *Master {
+	if m != nil {
+		return m.Master
+	}
+	return nil
+}
+
+type ConnectRequest struct {
+	ID                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -94,7 +177,7 @@ func (m *ConnectRequest) Reset()         { *m = ConnectRequest{} }
 func (m *ConnectRequest) String() string { return proto.CompactTextString(m) }
 func (*ConnectRequest) ProtoMessage()    {}
 func (*ConnectRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{1}
+	return fileDescriptor_b6184fc395da86b1, []int{3}
 }
 func (m *ConnectRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectRequest.Unmarshal(m, b)
@@ -121,15 +204,11 @@ func (m *ConnectRequest) GetID() string {
 	return ""
 }
 
-func (m *ConnectRequest) GetClusterKey() string {
-	if m != nil {
-		return m.ClusterKey
-	}
-	return ""
-}
-
 type ConnectResponse struct {
-	Master               *Master  `protobuf:"bytes,1,opt,name=master,proto3" json:"master,omitempty"`
+	KeyPair              *KeyPair `protobuf:"bytes,1,opt,name=keypair,proto3" json:"keypair,omitempty"`
+	Address              string   `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Peers                []*Peer  `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
+	DNS                  []string `protobuf:"bytes,4,rep,name=dns,proto3" json:"dns,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -139,7 +218,7 @@ func (m *ConnectResponse) Reset()         { *m = ConnectResponse{} }
 func (m *ConnectResponse) String() string { return proto.CompactTextString(m) }
 func (*ConnectResponse) ProtoMessage()    {}
 func (*ConnectResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{2}
+	return fileDescriptor_b6184fc395da86b1, []int{4}
 }
 func (m *ConnectResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ConnectResponse.Unmarshal(m, b)
@@ -159,9 +238,174 @@ func (m *ConnectResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ConnectResponse proto.InternalMessageInfo
 
-func (m *ConnectResponse) GetMaster() *Master {
+func (m *ConnectResponse) GetKeyPair() *KeyPair {
 	if m != nil {
-		return m.Master
+		return m.KeyPair
+	}
+	return nil
+}
+
+func (m *ConnectResponse) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *ConnectResponse) GetPeers() []*Peer {
+	if m != nil {
+		return m.Peers
+	}
+	return nil
+}
+
+func (m *ConnectResponse) GetDNS() []string {
+	if m != nil {
+		return m.DNS
+	}
+	return nil
+}
+
+type AuthorizePeerRequest struct {
+	ID                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AuthorizePeerRequest) Reset()         { *m = AuthorizePeerRequest{} }
+func (m *AuthorizePeerRequest) String() string { return proto.CompactTextString(m) }
+func (*AuthorizePeerRequest) ProtoMessage()    {}
+func (*AuthorizePeerRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{5}
+}
+func (m *AuthorizePeerRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AuthorizePeerRequest.Unmarshal(m, b)
+}
+func (m *AuthorizePeerRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AuthorizePeerRequest.Marshal(b, m, deterministic)
+}
+func (m *AuthorizePeerRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AuthorizePeerRequest.Merge(m, src)
+}
+func (m *AuthorizePeerRequest) XXX_Size() int {
+	return xxx_messageInfo_AuthorizePeerRequest.Size(m)
+}
+func (m *AuthorizePeerRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_AuthorizePeerRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AuthorizePeerRequest proto.InternalMessageInfo
+
+func (m *AuthorizePeerRequest) GetID() string {
+	if m != nil {
+		return m.ID
+	}
+	return ""
+}
+
+type DeauthorizePeerRequest struct {
+	ID                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DeauthorizePeerRequest) Reset()         { *m = DeauthorizePeerRequest{} }
+func (m *DeauthorizePeerRequest) String() string { return proto.CompactTextString(m) }
+func (*DeauthorizePeerRequest) ProtoMessage()    {}
+func (*DeauthorizePeerRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{6}
+}
+func (m *DeauthorizePeerRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeauthorizePeerRequest.Unmarshal(m, b)
+}
+func (m *DeauthorizePeerRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeauthorizePeerRequest.Marshal(b, m, deterministic)
+}
+func (m *DeauthorizePeerRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeauthorizePeerRequest.Merge(m, src)
+}
+func (m *DeauthorizePeerRequest) XXX_Size() int {
+	return xxx_messageInfo_DeauthorizePeerRequest.Size(m)
+}
+func (m *DeauthorizePeerRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeauthorizePeerRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeauthorizePeerRequest proto.InternalMessageInfo
+
+func (m *DeauthorizePeerRequest) GetID() string {
+	if m != nil {
+		return m.ID
+	}
+	return ""
+}
+
+type AuthorizedPeersRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AuthorizedPeersRequest) Reset()         { *m = AuthorizedPeersRequest{} }
+func (m *AuthorizedPeersRequest) String() string { return proto.CompactTextString(m) }
+func (*AuthorizedPeersRequest) ProtoMessage()    {}
+func (*AuthorizedPeersRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{7}
+}
+func (m *AuthorizedPeersRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AuthorizedPeersRequest.Unmarshal(m, b)
+}
+func (m *AuthorizedPeersRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AuthorizedPeersRequest.Marshal(b, m, deterministic)
+}
+func (m *AuthorizedPeersRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AuthorizedPeersRequest.Merge(m, src)
+}
+func (m *AuthorizedPeersRequest) XXX_Size() int {
+	return xxx_messageInfo_AuthorizedPeersRequest.Size(m)
+}
+func (m *AuthorizedPeersRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_AuthorizedPeersRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AuthorizedPeersRequest proto.InternalMessageInfo
+
+type AuthorizedPeersResponse struct {
+	IDs                  []string `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AuthorizedPeersResponse) Reset()         { *m = AuthorizedPeersResponse{} }
+func (m *AuthorizedPeersResponse) String() string { return proto.CompactTextString(m) }
+func (*AuthorizedPeersResponse) ProtoMessage()    {}
+func (*AuthorizedPeersResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b6184fc395da86b1, []int{8}
+}
+func (m *AuthorizedPeersResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AuthorizedPeersResponse.Unmarshal(m, b)
+}
+func (m *AuthorizedPeersResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AuthorizedPeersResponse.Marshal(b, m, deterministic)
+}
+func (m *AuthorizedPeersResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AuthorizedPeersResponse.Merge(m, src)
+}
+func (m *AuthorizedPeersResponse) XXX_Size() int {
+	return xxx_messageInfo_AuthorizedPeersResponse.Size(m)
+}
+func (m *AuthorizedPeersResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_AuthorizedPeersResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AuthorizedPeersResponse proto.InternalMessageInfo
+
+func (m *AuthorizedPeersResponse) GetIDs() []string {
+	if m != nil {
+		return m.IDs
 	}
 	return nil
 }
@@ -178,7 +422,7 @@ func (m *KeyPair) Reset()         { *m = KeyPair{} }
 func (m *KeyPair) String() string { return proto.CompactTextString(m) }
 func (*KeyPair) ProtoMessage()    {}
 func (*KeyPair) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{3}
+	return fileDescriptor_b6184fc395da86b1, []int{9}
 }
 func (m *KeyPair) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_KeyPair.Unmarshal(m, b)
@@ -229,7 +473,7 @@ func (m *Node) Reset()         { *m = Node{} }
 func (m *Node) String() string { return proto.CompactTextString(m) }
 func (*Node) ProtoMessage()    {}
 func (*Node) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{4}
+	return fileDescriptor_b6184fc395da86b1, []int{10}
 }
 func (m *Node) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Node.Unmarshal(m, b)
@@ -308,7 +552,7 @@ func (m *NodesRequest) Reset()         { *m = NodesRequest{} }
 func (m *NodesRequest) String() string { return proto.CompactTextString(m) }
 func (*NodesRequest) ProtoMessage()    {}
 func (*NodesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{5}
+	return fileDescriptor_b6184fc395da86b1, []int{11}
 }
 func (m *NodesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NodesRequest.Unmarshal(m, b)
@@ -339,7 +583,7 @@ func (m *NodesResponse) Reset()         { *m = NodesResponse{} }
 func (m *NodesResponse) String() string { return proto.CompactTextString(m) }
 func (*NodesResponse) ProtoMessage()    {}
 func (*NodesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{6}
+	return fileDescriptor_b6184fc395da86b1, []int{12}
 }
 func (m *NodesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NodesResponse.Unmarshal(m, b)
@@ -380,7 +624,7 @@ func (m *Peer) Reset()         { *m = Peer{} }
 func (m *Peer) String() string { return proto.CompactTextString(m) }
 func (*Peer) ProtoMessage()    {}
 func (*Peer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{7}
+	return fileDescriptor_b6184fc395da86b1, []int{13}
 }
 func (m *Peer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Peer.Unmarshal(m, b)
@@ -438,7 +682,7 @@ func (m *PeersRequest) Reset()         { *m = PeersRequest{} }
 func (m *PeersRequest) String() string { return proto.CompactTextString(m) }
 func (*PeersRequest) ProtoMessage()    {}
 func (*PeersRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{8}
+	return fileDescriptor_b6184fc395da86b1, []int{14}
 }
 func (m *PeersRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PeersRequest.Unmarshal(m, b)
@@ -469,7 +713,7 @@ func (m *PeersResponse) Reset()         { *m = PeersResponse{} }
 func (m *PeersResponse) String() string { return proto.CompactTextString(m) }
 func (*PeersResponse) ProtoMessage()    {}
 func (*PeersResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{9}
+	return fileDescriptor_b6184fc395da86b1, []int{15}
 }
 func (m *PeersResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PeersResponse.Unmarshal(m, b)
@@ -508,7 +752,7 @@ func (m *Route) Reset()         { *m = Route{} }
 func (m *Route) String() string { return proto.CompactTextString(m) }
 func (*Route) ProtoMessage()    {}
 func (*Route) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{10}
+	return fileDescriptor_b6184fc395da86b1, []int{16}
 }
 func (m *Route) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Route.Unmarshal(m, b)
@@ -554,7 +798,7 @@ func (m *CreateRouteRequest) Reset()         { *m = CreateRouteRequest{} }
 func (m *CreateRouteRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateRouteRequest) ProtoMessage()    {}
 func (*CreateRouteRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{11}
+	return fileDescriptor_b6184fc395da86b1, []int{17}
 }
 func (m *CreateRouteRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateRouteRequest.Unmarshal(m, b)
@@ -599,7 +843,7 @@ func (m *DeleteRouteRequest) Reset()         { *m = DeleteRouteRequest{} }
 func (m *DeleteRouteRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteRouteRequest) ProtoMessage()    {}
 func (*DeleteRouteRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{12}
+	return fileDescriptor_b6184fc395da86b1, []int{18}
 }
 func (m *DeleteRouteRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteRouteRequest.Unmarshal(m, b)
@@ -636,7 +880,7 @@ func (m *RoutesRequest) Reset()         { *m = RoutesRequest{} }
 func (m *RoutesRequest) String() string { return proto.CompactTextString(m) }
 func (*RoutesRequest) ProtoMessage()    {}
 func (*RoutesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{13}
+	return fileDescriptor_b6184fc395da86b1, []int{19}
 }
 func (m *RoutesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RoutesRequest.Unmarshal(m, b)
@@ -667,7 +911,7 @@ func (m *RoutesResponse) Reset()         { *m = RoutesResponse{} }
 func (m *RoutesResponse) String() string { return proto.CompactTextString(m) }
 func (*RoutesResponse) ProtoMessage()    {}
 func (*RoutesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b6184fc395da86b1, []int{14}
+	return fileDescriptor_b6184fc395da86b1, []int{20}
 }
 func (m *RoutesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RoutesResponse.Unmarshal(m, b)
@@ -696,8 +940,14 @@ func (m *RoutesResponse) GetRoutes() []*Route {
 
 func init() {
 	proto.RegisterType((*Master)(nil), "io.stellarproject.heimdall.api.v1.Master")
+	proto.RegisterType((*JoinRequest)(nil), "io.stellarproject.heimdall.api.v1.JoinRequest")
+	proto.RegisterType((*JoinResponse)(nil), "io.stellarproject.heimdall.api.v1.JoinResponse")
 	proto.RegisterType((*ConnectRequest)(nil), "io.stellarproject.heimdall.api.v1.ConnectRequest")
 	proto.RegisterType((*ConnectResponse)(nil), "io.stellarproject.heimdall.api.v1.ConnectResponse")
+	proto.RegisterType((*AuthorizePeerRequest)(nil), "io.stellarproject.heimdall.api.v1.AuthorizePeerRequest")
+	proto.RegisterType((*DeauthorizePeerRequest)(nil), "io.stellarproject.heimdall.api.v1.DeauthorizePeerRequest")
+	proto.RegisterType((*AuthorizedPeersRequest)(nil), "io.stellarproject.heimdall.api.v1.AuthorizedPeersRequest")
+	proto.RegisterType((*AuthorizedPeersResponse)(nil), "io.stellarproject.heimdall.api.v1.AuthorizedPeersResponse")
 	proto.RegisterType((*KeyPair)(nil), "io.stellarproject.heimdall.api.v1.KeyPair")
 	proto.RegisterType((*Node)(nil), "io.stellarproject.heimdall.api.v1.Node")
 	proto.RegisterType((*NodesRequest)(nil), "io.stellarproject.heimdall.api.v1.NodesRequest")
@@ -717,59 +967,71 @@ func init() {
 }
 
 var fileDescriptor_b6184fc395da86b1 = []byte{
-	// 831 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x56, 0xdd, 0x8e, 0xe3, 0x34,
-	0x14, 0x26, 0x9d, 0x36, 0x6d, 0x4f, 0xe6, 0x47, 0xb2, 0xd0, 0x2a, 0x2a, 0x42, 0x19, 0xb2, 0x17,
-	0xcc, 0xa2, 0x55, 0xb2, 0x2d, 0x42, 0x42, 0x42, 0x20, 0xe6, 0x67, 0x59, 0xa2, 0x81, 0x55, 0x31,
-	0xbb, 0x37, 0x08, 0xa9, 0x4a, 0x1b, 0xd3, 0xf5, 0x4c, 0x5a, 0x1b, 0xc7, 0xe9, 0xa8, 0x57, 0xbc,
-	0x02, 0x4f, 0xc4, 0x35, 0xbc, 0x44, 0x90, 0xfa, 0x22, 0x20, 0x3b, 0x4e, 0x68, 0x67, 0x34, 0x90,
-	0x11, 0x7b, 0x97, 0x73, 0x7c, 0xbe, 0xcf, 0x9f, 0xbf, 0x73, 0xec, 0x16, 0x3e, 0x9d, 0x53, 0xf9,
-	0x26, 0x9f, 0x06, 0x33, 0xb6, 0x08, 0x33, 0x49, 0xd2, 0x34, 0x16, 0x5c, 0xb0, 0x2b, 0x32, 0x93,
-	0xe1, 0x1b, 0x42, 0x17, 0x49, 0x9c, 0xa6, 0x61, 0xcc, 0x69, 0xb8, 0x1a, 0xd6, 0x71, 0xc0, 0x05,
-	0x93, 0x0c, 0x7d, 0x40, 0x59, 0xb0, 0x8b, 0x08, 0xea, 0x8a, 0x98, 0xd3, 0x60, 0x35, 0x1c, 0xbc,
-	0x3b, 0x67, 0x73, 0xa6, 0xab, 0x43, 0xf5, 0x55, 0x02, 0x07, 0xef, 0xcd, 0x19, 0x9b, 0xa7, 0x24,
-	0xd4, 0xd1, 0x34, 0xff, 0x29, 0x24, 0x0b, 0x2e, 0xd7, 0x66, 0xd1, 0xbb, 0xbd, 0x28, 0xe9, 0x82,
-	0x64, 0x32, 0x5e, 0xf0, 0xb2, 0xc0, 0xff, 0x05, 0xec, 0x6f, 0xe3, 0x4c, 0x12, 0x81, 0x1e, 0x41,
-	0x8b, 0x26, 0xae, 0x75, 0x6c, 0x9d, 0xf4, 0xcf, 0xec, 0x4d, 0xe1, 0xb5, 0xa2, 0x0b, 0xdc, 0xa2,
-	0x09, 0x1a, 0xc1, 0xfe, 0x5c, 0xf0, 0xd9, 0x24, 0x4e, 0x12, 0x41, 0xb2, 0xcc, 0x6d, 0xe9, 0x8a,
-	0xa3, 0x4d, 0xe1, 0x39, 0x2f, 0xf0, 0xf8, 0xfc, 0xb4, 0x4c, 0x63, 0x47, 0x15, 0x99, 0x00, 0x3d,
-	0x81, 0xbe, 0x20, 0x09, 0xcd, 0x26, 0xb9, 0x48, 0xdd, 0x3d, 0x0d, 0xd8, 0xdf, 0x14, 0x5e, 0x0f,
-	0xab, 0xe4, 0x6b, 0xfc, 0x0d, 0xee, 0xe9, 0xe5, 0xd7, 0x22, 0xf5, 0x23, 0x38, 0x3c, 0x67, 0xcb,
-	0x25, 0x99, 0x49, 0x4c, 0x7e, 0xce, 0x49, 0x26, 0xef, 0x15, 0xe2, 0x81, 0x33, 0x4b, 0x73, 0xa5,
-	0x75, 0x72, 0x4d, 0xd6, 0xa5, 0x0e, 0x0c, 0x26, 0x75, 0x49, 0xd6, 0xfe, 0x2b, 0x38, 0xaa, 0xa9,
-	0x32, 0xce, 0x96, 0x19, 0x41, 0xa7, 0x60, 0x2f, 0xf4, 0xf1, 0x34, 0x9f, 0x33, 0x7a, 0x12, 0xfc,
-	0xa7, 0xcd, 0x41, 0xe9, 0x07, 0x36, 0x40, 0x3f, 0x82, 0xee, 0x25, 0x59, 0x8f, 0x63, 0x2a, 0x94,
-	0x02, 0x2e, 0xe8, 0x2a, 0x96, 0x44, 0x2b, 0xb0, 0x4a, 0x05, 0x26, 0x75, 0x49, 0xd6, 0xe8, 0x7d,
-	0x00, 0x9e, 0x4f, 0x53, 0x3a, 0xdb, 0x52, 0xd8, 0x2f, 0x33, 0x4a, 0xe0, 0x1f, 0x2d, 0x68, 0xbf,
-	0x64, 0x09, 0xb9, 0xf7, 0x88, 0x08, 0xda, 0xca, 0x66, 0x83, 0xd4, 0xdf, 0xe8, 0x3b, 0xe8, 0x5e,
-	0x93, 0x35, 0x8f, 0xa9, 0xd0, 0x4e, 0x3a, 0xa3, 0x8f, 0x1a, 0x9c, 0xc1, 0x28, 0x3e, 0x73, 0x36,
-	0x85, 0x57, 0xc9, 0xc7, 0x15, 0x0f, 0x0a, 0xc1, 0x21, 0xcb, 0x84, 0x33, 0xba, 0x94, 0x13, 0xca,
-	0xdd, 0xb6, 0xd6, 0x71, 0xb8, 0x29, 0x3c, 0x78, 0x6e, 0xd2, 0xd1, 0x18, 0x43, 0x55, 0x12, 0x71,
-	0xf4, 0x18, 0x0e, 0x6a, 0x00, 0x67, 0x42, 0xba, 0x9d, 0x63, 0xeb, 0xa4, 0x8d, 0xf7, 0xab, 0xe4,
-	0x98, 0x09, 0x89, 0x9e, 0x02, 0xcc, 0x63, 0x49, 0x6e, 0xe2, 0xb5, 0x22, 0xb5, 0x35, 0xe9, 0xc1,
-	0xa6, 0xf0, 0xfa, 0x2f, 0xca, 0x6c, 0x34, 0xc6, 0x7d, 0x53, 0x10, 0x71, 0xf4, 0x05, 0x74, 0x73,
-	0x9e, 0xc4, 0x92, 0x24, 0x6e, 0x57, 0x1f, 0x6b, 0x10, 0x94, 0xb3, 0x1a, 0x54, 0xb3, 0x1a, 0xbc,
-	0xaa, 0x66, 0xf5, 0xac, 0xf7, 0x7b, 0xe1, 0xbd, 0xf3, 0xeb, 0x9f, 0x9e, 0x85, 0x2b, 0x90, 0x7f,
-	0x08, 0xfb, 0xca, 0xca, 0xcc, 0x4c, 0x8d, 0xff, 0x12, 0x0e, 0x4c, 0x6c, 0x5a, 0xff, 0x39, 0x74,
-	0x96, 0x2a, 0xe1, 0x5a, 0xc7, 0x7b, 0x27, 0xce, 0xe8, 0xc3, 0x06, 0xae, 0x29, 0x02, 0x5c, 0xa2,
-	0xfc, 0xdf, 0x2c, 0x68, 0x8f, 0xc9, 0xbf, 0xdc, 0x8b, 0xad, 0xbe, 0xb4, 0xde, 0x5e, 0x5f, 0xe2,
-	0x34, 0x65, 0x37, 0x24, 0x99, 0x50, 0x9e, 0xb9, 0x7b, 0xc7, 0x7b, 0x55, 0x5f, 0x4e, 0xcb, 0x74,
-	0x34, 0xce, 0x30, 0x98, 0x92, 0x88, 0x67, 0x68, 0x00, 0xbd, 0xaa, 0x05, 0x65, 0x17, 0x71, 0x1d,
-	0x2b, 0x83, 0x94, 0xfe, 0x6d, 0x83, 0x4c, 0xfc, 0x8f, 0x41, 0x5c, 0x25, 0x1e, 0x60, 0x90, 0x22,
-	0xc0, 0x25, 0xca, 0xff, 0x0a, 0x3a, 0x98, 0xe5, 0x92, 0xa0, 0xc7, 0xd0, 0x55, 0x96, 0x4d, 0x6a,
-	0x97, 0x60, 0x53, 0x78, 0xb6, 0xf2, 0x32, 0xba, 0xc0, 0xb6, 0x5a, 0x8a, 0x12, 0xe4, 0x42, 0x77,
-	0x49, 0xe4, 0x0d, 0x13, 0xd7, 0x66, 0xb8, 0xab, 0xd0, 0xff, 0x1e, 0xd0, 0xb9, 0x20, 0xb1, 0x24,
-	0x9a, 0xad, 0x7a, 0x04, 0xfe, 0x27, 0x69, 0x00, 0xe8, 0x82, 0xa4, 0xe4, 0x16, 0xe9, 0x56, 0xbd,
-	0xb5, 0x5b, 0x7f, 0x04, 0x07, 0xba, 0xb2, 0x76, 0x0b, 0xc3, 0x61, 0x95, 0x30, 0x76, 0x7d, 0x09,
-	0xb6, 0xd0, 0x19, 0xe3, 0xd7, 0x49, 0x03, 0xbf, 0xca, 0xdd, 0x0d, 0x6e, 0xf4, 0x57, 0x1b, 0x7a,
-	0x5f, 0x9b, 0x0a, 0xc4, 0xa1, 0x6b, 0x1e, 0x2b, 0x34, 0x6c, 0xc0, 0xb4, 0xfb, 0x46, 0x0e, 0x46,
-	0x0f, 0x81, 0x98, 0x03, 0x2c, 0xc0, 0x2e, 0x8f, 0x84, 0x9e, 0x35, 0x95, 0x5e, 0xd9, 0x31, 0x18,
-	0x3e, 0x00, 0x61, 0xb6, 0xfb, 0x11, 0x9c, 0xad, 0xbe, 0xa2, 0x4f, 0x9a, 0x28, 0xbe, 0x33, 0x07,
-	0x83, 0x47, 0x77, 0x5e, 0x85, 0xe7, 0xea, 0xe7, 0x4d, 0xb1, 0x6f, 0x35, 0xb8, 0x11, 0xfb, 0xdd,
-	0x81, 0xb8, 0x97, 0xfd, 0x0a, 0x3a, 0xfa, 0x31, 0x41, 0x61, 0xc3, 0x57, 0xa3, 0x36, 0xea, 0x59,
-	0x73, 0x80, 0xf1, 0xe9, 0x0a, 0x3a, 0xfa, 0x5e, 0x36, 0xda, 0x6b, 0xfb, 0x46, 0x37, 0xda, 0x6b,
-	0xe7, 0xca, 0x9f, 0x05, 0x3f, 0x3c, 0x6d, 0xfc, 0x07, 0xe5, 0xb3, 0xd5, 0x70, 0x6a, 0x6b, 0x5f,
-	0x3e, 0xfe, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x46, 0x38, 0x83, 0x35, 0xd7, 0x08, 0x00, 0x00,
+	// 1014 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x57, 0x5d, 0x6f, 0xe3, 0x44,
+	0x17, 0x7e, 0x9d, 0xef, 0x1c, 0x27, 0x8d, 0x34, 0x5a, 0xf5, 0xf5, 0x06, 0x21, 0x17, 0xef, 0x05,
+	0x59, 0xb4, 0xb2, 0x9b, 0x00, 0xe2, 0x4b, 0x8b, 0x68, 0x9a, 0xdd, 0xc5, 0x14, 0xaa, 0xec, 0x2c,
+	0x7b, 0x83, 0x56, 0x0a, 0x6e, 0x3c, 0xa4, 0x6e, 0x9d, 0xcc, 0x60, 0x4f, 0x5a, 0x85, 0x1b, 0x6e,
+	0xb9, 0xe4, 0xff, 0x20, 0x71, 0x0d, 0xff, 0x80, 0xab, 0x20, 0xe5, 0x97, 0xa0, 0x19, 0x8f, 0x4d,
+	0xd2, 0x36, 0xaa, 0xbb, 0xec, 0x5d, 0xe6, 0xcc, 0x79, 0xce, 0x39, 0x7e, 0xce, 0x73, 0x8e, 0x1d,
+	0xf8, 0x78, 0x12, 0xf0, 0xd3, 0xf9, 0x89, 0x3d, 0xa6, 0x53, 0x27, 0xe6, 0x24, 0x0c, 0xbd, 0x88,
+	0x45, 0xf4, 0x8c, 0x8c, 0xb9, 0x73, 0x4a, 0x82, 0xa9, 0xef, 0x85, 0xa1, 0xe3, 0xb1, 0xc0, 0xb9,
+	0xe8, 0x66, 0x67, 0x9b, 0x45, 0x94, 0x53, 0xf4, 0x4e, 0x40, 0xed, 0x4d, 0x84, 0x9d, 0x79, 0x78,
+	0x2c, 0xb0, 0x2f, 0xba, 0xed, 0x7b, 0x13, 0x3a, 0xa1, 0xd2, 0xdb, 0x11, 0xbf, 0x12, 0x60, 0xfb,
+	0xad, 0x09, 0xa5, 0x93, 0x90, 0x38, 0xf2, 0x74, 0x32, 0xff, 0xc1, 0x21, 0x53, 0xc6, 0x17, 0xea,
+	0xd2, 0xbc, 0x7a, 0xc9, 0x83, 0x29, 0x89, 0xb9, 0x37, 0x65, 0x89, 0x83, 0xf5, 0x33, 0x54, 0xbe,
+	0xf1, 0x62, 0x4e, 0x22, 0xb4, 0x0b, 0x85, 0xc0, 0x37, 0xb4, 0x3d, 0xad, 0x53, 0xef, 0x57, 0x56,
+	0x4b, 0xb3, 0xe0, 0x0e, 0x70, 0x21, 0xf0, 0x51, 0x0f, 0x1a, 0x93, 0x88, 0x8d, 0x47, 0x9e, 0xef,
+	0x47, 0x24, 0x8e, 0x8d, 0x82, 0xf4, 0x68, 0xad, 0x96, 0xa6, 0xfe, 0x0c, 0x0f, 0x0f, 0x0f, 0x12,
+	0x33, 0xd6, 0x85, 0x93, 0x3a, 0xa0, 0x87, 0x50, 0x8f, 0x88, 0x1f, 0xc4, 0xa3, 0x79, 0x14, 0x1a,
+	0x45, 0x09, 0x68, 0xac, 0x96, 0x66, 0x0d, 0x0b, 0xe3, 0x4b, 0xfc, 0x35, 0xae, 0xc9, 0xeb, 0x97,
+	0x51, 0x68, 0x3d, 0x05, 0xfd, 0x2b, 0x1a, 0xcc, 0x30, 0xf9, 0x71, 0x4e, 0x62, 0xbe, 0xb5, 0x0a,
+	0x13, 0xf4, 0x71, 0x38, 0x17, 0x85, 0x8e, 0xce, 0xc9, 0x22, 0x29, 0x02, 0x83, 0x32, 0x1d, 0x91,
+	0x85, 0xf5, 0x1c, 0x1a, 0x49, 0x9c, 0x98, 0xd1, 0x59, 0x4c, 0xd0, 0x01, 0x54, 0xa6, 0xf2, 0xc1,
+	0x64, 0x30, 0xbd, 0xf7, 0xd0, 0xbe, 0x95, 0x60, 0x3b, 0x61, 0x02, 0x2b, 0xa0, 0xd5, 0x81, 0x9d,
+	0x43, 0x3a, 0x9b, 0x91, 0x31, 0xbf, 0xa5, 0x3a, 0xeb, 0x2f, 0x0d, 0x5a, 0x99, 0xab, 0x2a, 0xe0,
+	0x39, 0x54, 0xcf, 0xc9, 0x82, 0x79, 0x41, 0x5a, 0xc1, 0x7b, 0x39, 0x2a, 0x38, 0x22, 0x8b, 0xa1,
+	0x17, 0x44, 0x7d, 0x7d, 0xb5, 0x34, 0xab, 0xea, 0x80, 0xd3, 0x38, 0xc8, 0x80, 0xea, 0x46, 0x17,
+	0x70, 0x7a, 0x44, 0x8f, 0xa1, 0xcc, 0x08, 0x89, 0x62, 0xa3, 0xb8, 0x57, 0xec, 0xe8, 0xbd, 0x77,
+	0x73, 0xa4, 0x1a, 0x12, 0x12, 0xe1, 0x04, 0x85, 0xee, 0x43, 0xd1, 0x9f, 0xc5, 0x46, 0x69, 0xaf,
+	0xd8, 0xa9, 0xf7, 0xab, 0xab, 0xa5, 0x59, 0x1c, 0x1c, 0xbf, 0xc0, 0xc2, 0x66, 0xd9, 0x70, 0xef,
+	0x60, 0xce, 0x4f, 0x69, 0x14, 0xfc, 0x44, 0x24, 0xe4, 0x16, 0x2a, 0xf6, 0x61, 0x77, 0x40, 0xbc,
+	0xbb, 0x20, 0x0c, 0xd8, 0xcd, 0x32, 0xf8, 0x02, 0x10, 0x2b, 0x84, 0xf5, 0x01, 0xfc, 0xff, 0xda,
+	0x8d, 0x62, 0xf7, 0x3e, 0x14, 0x03, 0x3f, 0x36, 0xb4, 0x7f, 0x2b, 0x76, 0x07, 0x31, 0x16, 0x36,
+	0xcb, 0x85, 0x94, 0x39, 0xa1, 0x1a, 0x16, 0x05, 0x17, 0x1e, 0x27, 0x52, 0x35, 0x5a, 0xa2, 0x1a,
+	0x65, 0x3a, 0x22, 0x0b, 0xf4, 0x36, 0x00, 0x9b, 0x9f, 0x84, 0xc1, 0x78, 0x4d, 0x55, 0xf5, 0xc4,
+	0x22, 0x44, 0xf5, 0x67, 0x01, 0x4a, 0xc7, 0xd4, 0x27, 0x5b, 0x65, 0x89, 0xa0, 0x24, 0x5a, 0xa0,
+	0x90, 0xf2, 0xf7, 0x7a, 0xe3, 0x8b, 0x6f, 0xa8, 0xf1, 0x0e, 0xe8, 0x64, 0xe6, 0x33, 0x1a, 0xcc,
+	0xf8, 0x28, 0x60, 0x46, 0x49, 0xd6, 0xb1, 0xb3, 0x5a, 0x9a, 0xf0, 0x44, 0x99, 0xdd, 0x21, 0x86,
+	0xd4, 0xc5, 0x65, 0xe8, 0x01, 0x34, 0x33, 0x00, 0xa3, 0x11, 0x37, 0xca, 0x7b, 0x5a, 0xa7, 0x84,
+	0x1b, 0xa9, 0x71, 0x48, 0x23, 0x8e, 0x1e, 0x01, 0x4c, 0x3c, 0x4e, 0x2e, 0xbd, 0x85, 0x08, 0x5a,
+	0x91, 0x41, 0x9b, 0xab, 0xa5, 0x59, 0x7f, 0x96, 0x58, 0xdd, 0x21, 0xae, 0x2b, 0x07, 0x97, 0xa1,
+	0xcf, 0xa1, 0x3a, 0x67, 0xbe, 0xc7, 0x89, 0x6f, 0x54, 0xe5, 0x63, 0xb5, 0xed, 0x64, 0xb9, 0xd8,
+	0xe9, 0x72, 0xb1, 0xbf, 0x4d, 0x97, 0x4b, 0xbf, 0xf6, 0xc7, 0xd2, 0xfc, 0xdf, 0xaf, 0x7f, 0x9b,
+	0x1a, 0x4e, 0x41, 0xd6, 0x0e, 0x34, 0x04, 0x95, 0x59, 0x73, 0x8f, 0xa1, 0xa9, 0xce, 0xaa, 0xa5,
+	0x8f, 0xa1, 0x3c, 0x13, 0x06, 0xd9, 0xd4, 0x7c, 0x1a, 0x16, 0x01, 0x70, 0x82, 0xb2, 0x7e, 0xd7,
+	0xa0, 0x24, 0x34, 0xb2, 0xb5, 0x57, 0x6b, 0x7d, 0x29, 0xbc, 0xb9, 0xbe, 0x78, 0x61, 0x48, 0x2f,
+	0x89, 0x3f, 0x0a, 0x58, 0x32, 0x7c, 0xaa, 0x2f, 0x07, 0x89, 0xd9, 0x1d, 0xc6, 0x18, 0x94, 0x8b,
+	0xcb, 0x62, 0xd4, 0x86, 0x5a, 0xda, 0x82, 0xa4, 0x8b, 0x38, 0x3b, 0x0b, 0x82, 0x36, 0xd4, 0x7f,
+	0x0c, 0xcd, 0x4d, 0xcd, 0x67, 0x43, 0xae, 0xbd, 0xce, 0x90, 0x5b, 0x4f, 0xa1, 0x8c, 0xe9, 0x9c,
+	0x13, 0xf4, 0x00, 0xaa, 0x82, 0xb2, 0x51, 0xc6, 0x12, 0xac, 0x96, 0x66, 0x45, 0x70, 0xe9, 0x0e,
+	0x70, 0x45, 0x5c, 0xb9, 0xbe, 0xd8, 0x35, 0x33, 0xc2, 0x2f, 0x69, 0x74, 0x9e, 0xee, 0x1a, 0x75,
+	0xb4, 0x5e, 0x00, 0x3a, 0x8c, 0x88, 0xc7, 0x89, 0x8c, 0x96, 0x4e, 0xf7, 0x7f, 0x0c, 0x6a, 0x03,
+	0x1a, 0x90, 0x90, 0x5c, 0x09, 0xba, 0xe6, 0xaf, 0x6d, 0xfa, 0xb7, 0xa0, 0x29, 0x3d, 0x33, 0xb6,
+	0x30, 0xec, 0xa4, 0x06, 0x45, 0xd7, 0x17, 0x50, 0x89, 0xa4, 0x45, 0xf1, 0xd5, 0xc9, 0xc1, 0x57,
+	0x92, 0x5d, 0xe1, 0x7a, 0xbf, 0xd5, 0xa0, 0xf6, 0xa5, 0xf2, 0x40, 0x0c, 0xaa, 0x6a, 0xc5, 0xa3,
+	0x6e, 0x8e, 0x48, 0x9b, 0x6f, 0x8e, 0x76, 0xef, 0x2e, 0x10, 0xf5, 0x00, 0xdf, 0x43, 0x73, 0x63,
+	0xf5, 0xa2, 0x8f, 0x72, 0x04, 0xb9, 0x69, 0x59, 0xb7, 0x77, 0xaf, 0x8d, 0xea, 0x13, 0xf1, 0x91,
+	0x80, 0x7c, 0x68, 0x5d, 0x59, 0xd6, 0xe8, 0x93, 0x1c, 0x39, 0x6e, 0x5e, 0xf0, 0x5b, 0xb3, 0xfc,
+	0xa2, 0x41, 0xeb, 0xca, 0x1e, 0xcf, 0x95, 0xe6, 0xe6, 0xb7, 0x42, 0xfb, 0xd3, 0xd7, 0x81, 0x2a,
+	0x4a, 0x27, 0x50, 0x12, 0x5f, 0x09, 0xc8, 0xce, 0x11, 0x63, 0xed, 0xb3, 0xa4, 0xed, 0xe4, 0xf6,
+	0x57, 0x89, 0xa6, 0x50, 0x49, 0xe4, 0x88, 0xf6, 0xf3, 0xca, 0x2e, 0x7b, 0xc0, 0xee, 0x1d, 0x10,
+	0x2a, 0xdd, 0x2b, 0xd0, 0xd7, 0x66, 0x12, 0x7d, 0x98, 0x47, 0x6d, 0xd7, 0x66, 0x78, 0x6b, 0x03,
+	0x5f, 0x81, 0xbe, 0x36, 0x9c, 0xb9, 0xa2, 0x5f, 0x1f, 0xe6, 0xad, 0xd1, 0xcf, 0xa0, 0x2c, 0x5f,
+	0x04, 0xc8, 0xc9, 0xb9, 0xf1, 0x33, 0xa2, 0xf6, 0xf3, 0x03, 0x14, 0x4f, 0x67, 0x50, 0x4e, 0xf4,
+	0xe7, 0xe4, 0x5c, 0x9e, 0x77, 0xca, 0xb5, 0xa1, 0xb5, 0xbe, 0xfd, 0xdd, 0xa3, 0xdc, 0xff, 0x06,
+	0x3e, 0xbb, 0xe8, 0x9e, 0x54, 0x24, 0x2f, 0xef, 0xff, 0x13, 0x00, 0x00, 0xff, 0xff, 0xcd, 0x85,
+	0x12, 0x11, 0x44, 0x0c, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -785,6 +1047,10 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type HeimdallClient interface {
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
+	AuthorizePeer(ctx context.Context, in *AuthorizePeerRequest, opts ...grpc.CallOption) (*types.Empty, error)
+	DeauthorizePeer(ctx context.Context, in *DeauthorizePeerRequest, opts ...grpc.CallOption) (*types.Empty, error)
+	AuthorizedPeers(ctx context.Context, in *AuthorizedPeersRequest, opts ...grpc.CallOption) (*AuthorizedPeersResponse, error)
+	Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (*JoinResponse, error)
 	Routes(ctx context.Context, in *RoutesRequest, opts ...grpc.CallOption) (*RoutesResponse, error)
 	CreateRoute(ctx context.Context, in *CreateRouteRequest, opts ...grpc.CallOption) (*types.Empty, error)
 	DeleteRoute(ctx context.Context, in *DeleteRouteRequest, opts ...grpc.CallOption) (*types.Empty, error)
@@ -803,6 +1069,42 @@ func NewHeimdallClient(cc *grpc.ClientConn) HeimdallClient {
 func (c *heimdallClient) Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error) {
 	out := new(ConnectResponse)
 	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/Connect", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heimdallClient) AuthorizePeer(ctx context.Context, in *AuthorizePeerRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	out := new(types.Empty)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/AuthorizePeer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heimdallClient) DeauthorizePeer(ctx context.Context, in *DeauthorizePeerRequest, opts ...grpc.CallOption) (*types.Empty, error) {
+	out := new(types.Empty)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/DeauthorizePeer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heimdallClient) AuthorizedPeers(ctx context.Context, in *AuthorizedPeersRequest, opts ...grpc.CallOption) (*AuthorizedPeersResponse, error) {
+	out := new(AuthorizedPeersResponse)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/AuthorizedPeers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heimdallClient) Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (*JoinResponse, error) {
+	out := new(JoinResponse)
+	err := c.cc.Invoke(ctx, "/io.stellarproject.heimdall.api.v1.Heimdall/Join", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -857,6 +1159,10 @@ func (c *heimdallClient) Peers(ctx context.Context, in *PeersRequest, opts ...gr
 // HeimdallServer is the server API for Heimdall service.
 type HeimdallServer interface {
 	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
+	AuthorizePeer(context.Context, *AuthorizePeerRequest) (*types.Empty, error)
+	DeauthorizePeer(context.Context, *DeauthorizePeerRequest) (*types.Empty, error)
+	AuthorizedPeers(context.Context, *AuthorizedPeersRequest) (*AuthorizedPeersResponse, error)
+	Join(context.Context, *JoinRequest) (*JoinResponse, error)
 	Routes(context.Context, *RoutesRequest) (*RoutesResponse, error)
 	CreateRoute(context.Context, *CreateRouteRequest) (*types.Empty, error)
 	DeleteRoute(context.Context, *DeleteRouteRequest) (*types.Empty, error)
@@ -870,6 +1176,18 @@ type UnimplementedHeimdallServer struct {
 
 func (*UnimplementedHeimdallServer) Connect(ctx context.Context, req *ConnectRequest) (*ConnectResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
+}
+func (*UnimplementedHeimdallServer) AuthorizePeer(ctx context.Context, req *AuthorizePeerRequest) (*types.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthorizePeer not implemented")
+}
+func (*UnimplementedHeimdallServer) DeauthorizePeer(ctx context.Context, req *DeauthorizePeerRequest) (*types.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeauthorizePeer not implemented")
+}
+func (*UnimplementedHeimdallServer) AuthorizedPeers(ctx context.Context, req *AuthorizedPeersRequest) (*AuthorizedPeersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthorizedPeers not implemented")
+}
+func (*UnimplementedHeimdallServer) Join(ctx context.Context, req *JoinRequest) (*JoinResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
 }
 func (*UnimplementedHeimdallServer) Routes(ctx context.Context, req *RoutesRequest) (*RoutesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Routes not implemented")
@@ -905,6 +1223,78 @@ func _Heimdall_Connect_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(HeimdallServer).Connect(ctx, req.(*ConnectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heimdall_AuthorizePeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthorizePeerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).AuthorizePeer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/AuthorizePeer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).AuthorizePeer(ctx, req.(*AuthorizePeerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heimdall_DeauthorizePeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeauthorizePeerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).DeauthorizePeer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/DeauthorizePeer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).DeauthorizePeer(ctx, req.(*DeauthorizePeerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heimdall_AuthorizedPeers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthorizedPeersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).AuthorizedPeers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/AuthorizedPeers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).AuthorizedPeers(ctx, req.(*AuthorizedPeersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heimdall_Join_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeimdallServer).Join(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/io.stellarproject.heimdall.api.v1.Heimdall/Join",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeimdallServer).Join(ctx, req.(*JoinRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1006,6 +1396,22 @@ var _Heimdall_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Connect",
 			Handler:    _Heimdall_Connect_Handler,
+		},
+		{
+			MethodName: "AuthorizePeer",
+			Handler:    _Heimdall_AuthorizePeer_Handler,
+		},
+		{
+			MethodName: "DeauthorizePeer",
+			Handler:    _Heimdall_DeauthorizePeer_Handler,
+		},
+		{
+			MethodName: "AuthorizedPeers",
+			Handler:    _Heimdall_AuthorizedPeers_Handler,
+		},
+		{
+			MethodName: "Join",
+			Handler:    _Heimdall_Join_Handler,
 		},
 		{
 			MethodName: "Routes",

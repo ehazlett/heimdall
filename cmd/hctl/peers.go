@@ -34,8 +34,12 @@ var peersCommand = cli.Command{
 	Usage: "peer management",
 	Subcommands: []cli.Command{
 		listPeersCommand,
+		authorizedPeersCommand,
+		authorizePeerCommand,
+		deauthorizePeerCommand,
 	},
 }
+
 var listPeersCommand = cli.Command{
 	Name:  "list",
 	Usage: "list peers",
@@ -59,5 +63,59 @@ var listPeersCommand = cli.Command{
 		w.Flush()
 
 		return nil
+	},
+}
+
+var authorizedPeersCommand = cli.Command{
+	Name:  "authorized",
+	Usage: "authorized peers in the cluster",
+	Action: func(cx *cli.Context) error {
+		c, err := getClient(cx)
+		if err != nil {
+			return err
+		}
+		defer c.Close()
+
+		ids, err := c.AuthorizedPeers()
+		if err != nil {
+			return err
+		}
+		w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
+		fmt.Fprintf(w, "ID\n")
+		for _, id := range ids {
+			fmt.Fprintf(w, "%s\n", id)
+		}
+		w.Flush()
+		return nil
+	},
+}
+
+var authorizePeerCommand = cli.Command{
+	Name:  "authorize",
+	Usage: "authorize peer to cluster",
+	Action: func(cx *cli.Context) error {
+		c, err := getClient(cx)
+		if err != nil {
+			return err
+		}
+		defer c.Close()
+
+		id := cx.Args().First()
+		return c.AuthorizePeer(id)
+	},
+}
+
+var deauthorizePeerCommand = cli.Command{
+	Name:  "deauthorize",
+	Usage: "deauthorize peer from cluster",
+	Action: func(cx *cli.Context) error {
+		c, err := getClient(cx)
+		if err != nil {
+			return err
+		}
+		defer c.Close()
+
+		id := cx.Args().First()
+		return c.DeauthorizePeer(id)
 	},
 }

@@ -23,16 +23,16 @@ package server
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/sirupsen/logrus"
+	"github.com/stellarproject/heimdall"
 	v1 "github.com/stellarproject/heimdall/api/v1"
+	"github.com/stellarproject/heimdall/wg"
 )
 
 // Peers returns a list of known peers
@@ -74,8 +74,8 @@ func (s *Server) peerUpdater(ctx context.Context) {
 
 	for range t.C {
 		uctx, cancel := context.WithTimeout(ctx, peerConfigUpdateInterval)
-		if err := s.updatePeerInfo(uctx); err != nil {
-			logrus.Errorf("updatePeerInfo: %s", err)
+		if err := s.updatePeerInfo(uctx, s.cfg.ID); err != nil {
+			logrus.Errorf("updateLocalPeerInfo: %s", err)
 			cancel()
 			continue
 		}
@@ -89,16 +89,24 @@ func (s *Server) peerUpdater(ctx context.Context) {
 	}
 }
 
-func (s *Server) updatePeerInfo(ctx context.Context) error {
-	keypair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
+func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
+	keypair, err := s.getOrCreateKeyPair(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	endpoint := fmt.Sprintf("%s:%d", s.cfg.EndpointIP, s.cfg.EndpointPort)
+	endpoint, err := s.getPeerEndpoint(ctx, id)
+	if err != nil {
+		return err
+	}
 
 	// build allowedIPs from routes and peer network
 	allowedIPs := []string{}
+
+	// add peer net
+	if endpoint == "" {
+		allowedIPs = append(allowedIPs, s.cfg.PeerNetwork)
+	}
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
 		return err
@@ -106,7 +114,7 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 
 	for _, node := range nodes {
 		// only add the route if a peer to prevent route duplicate
-		if node.ID != s.cfg.ID {
+		if node.ID != id {
 			continue
 		}
 
@@ -124,17 +132,16 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 	}
 
 	for _, route := range routes {
-		// only add the route if a peer to prevent route duplicate
-		if route.NodeID != s.cfg.ID {
+		// only add the route if a peer to prevent route blackhole
+		if route.NodeID != id {
 			continue
 		}
 
-		logrus.Debugf("adding route to allowed IPs: %s", route.Network)
 		allowedIPs = append(allowedIPs, route.Network)
 	}
 
 	n := &v1.Peer{
-		ID:         s.cfg.ID,
+		ID:         id,
 		KeyPair:    keypair,
 		AllowedIPs: allowedIPs,
 		Endpoint:   endpoint,
@@ -144,9 +151,9 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	pHash := hashData(data)
+	pHash := heimdall.HashData(data)
 
-	key := s.getPeerKey(s.cfg.ID)
+	key := s.getPeerKey(id)
 	peerData, err := redis.Bytes(s.local(ctx, "GET", key))
 	if err != nil {
 		if err != redis.ErrNil {
@@ -154,7 +161,7 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 		}
 	}
 
-	eHash := hashData(peerData)
+	eHash := heimdall.HashData(peerData)
 
 	// skip update if same
 	if pHash == eHash {
@@ -165,9 +172,23 @@ func (s *Server) updatePeerInfo(ctx context.Context) error {
 		return err
 	}
 
-	logrus.Debugf("peer info: endpoint=%s allowedips=%+v", n.Endpoint, n.Endpoint)
+	logrus.Debugf("peer info updated: id=%s", id)
 
 	return nil
+}
+
+func (s *Server) getPeerEndpoint(ctx context.Context, id string) (string, error) {
+	node, err := s.getNode(ctx, id)
+	if err != nil {
+		if err == redis.ErrNil {
+			return "", nil
+		}
+		return "", err
+	}
+	if node == nil {
+		return "", nil
+	}
+	return fmt.Sprintf("%s:%d", node.EndpointIP, node.EndpointPort), nil
 }
 
 func (s *Server) getPeerInfo(ctx context.Context, id string) (*v1.Peer, error) {
@@ -222,25 +243,26 @@ func (s *Server) updatePeerConfig(ctx context.Context) error {
 	}
 
 	size, _ := gatewayNet.Mask.Size()
-	wireguardCfg := &wireguardConfig{
-		Iface:      defaultWireguardInterface,
+	wireguardCfg := &wg.Config{
+		Iface:      s.cfg.InterfaceName,
 		PrivateKey: keyPair.PrivateKey,
 		ListenPort: s.cfg.EndpointPort,
 		Address:    fmt.Sprintf("%s/%d", gatewayIP.To4().String(), size),
 		Peers:      peers,
 	}
 
-	tmpCfg, err := generateNodeWireguardConfig(wireguardCfg)
+	wireguardConfigPath := s.getWireguardConfigPath()
+	tmpCfg, err := wg.GenerateNodeConfig(wireguardCfg, wireguardConfigPath)
 	if err != nil {
 		return err
 	}
 
-	h, err := hashConfig(tmpCfg)
+	h, err := heimdall.HashConfig(tmpCfg)
 	if err != nil {
 		return err
 	}
 
-	e, err := hashConfig(wireguardConfigPath)
+	e, err := heimdall.HashConfig(wireguardConfigPath)
 	if err != nil {
 		return err
 	}
@@ -257,30 +279,9 @@ func (s *Server) updatePeerConfig(ctx context.Context) error {
 	}
 
 	// reload wireguard
-	if err := restartWireguardTunnel(ctx); err != nil {
+	if err := wg.RestartTunnel(ctx, s.getTunnelName()); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func hashData(data []byte) string {
-	h := sha256.New()
-	h.Write(data)
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-func hashConfig(cfgPath string) (string, error) {
-	if _, err := os.Stat(cfgPath); err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", err
-	}
-	peerData, err := ioutil.ReadFile(cfgPath)
-	if err != nil {
-		return "", err
-	}
-
-	return hashData(peerData), nil
 }

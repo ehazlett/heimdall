@@ -109,7 +109,7 @@ func (s *Server) configureNode() error {
 				logrus.Warn(err)
 				continue
 			}
-			m, err := c.Connect(s.cfg.ClusterKey)
+			m, err := c.Join(s.cfg.ClusterKey)
 			if err != nil {
 				c.Close()
 				logrus.Warn(err)

@@ -19,7 +19,7 @@
 	USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package server
+package wg
 
 import (
 	"bytes"
@@ -38,8 +38,7 @@ import (
 )
 
 const (
-	defaultWireguardInterface = "darknet"
-	wireguardTemplate         = `# managed by heimdall
+	wireguardNodeTemplate = `# managed by heimdall
 [Interface]
 PrivateKey = {{ .PrivateKey }}
 ListenPort = {{ .ListenPort }}
@@ -47,39 +46,56 @@ Address = {{ .Address }}
 PostUp = iptables -A FORWARD -i {{ .Iface }} -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i {{ .Iface }} -j ACCEPT; ip6tables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 PostDown = iptables -D FORWARD -i {{ .Iface }} -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i {{ .Iface }} -j ACCEPT; ip6tables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 {{ range .Peers }}
+# {{ .ID }}
 [Peer]
 PublicKey = {{ .KeyPair.PublicKey }}
-{{ if .AllowedIPs }}AllowedIPs = {{ allowedIPs .AllowedIPs }}{{ end }}
-Endpoint = {{ .Endpoint }}
+{{ if .AllowedIPs }}AllowedIPs = {{ csvList .AllowedIPs }}{{ end }}{{ if ne .Endpoint "" }}
+Endpoint = {{ .Endpoint }}{{ end }}
+{{ end }}
+`
+	wireguardPeerTemplate = `# managed by heimdall
+[Interface]
+PrivateKey = {{ .PrivateKey }}
+Address = {{ .Address }}
+DNS = {{ csvList .DNS }}
+{{ range .Peers }}
+# {{ .ID }}
+[Peer]
+PublicKey = {{ .KeyPair.PublicKey }}
+{{ if .AllowedIPs }}AllowedIPs = {{ csvList .AllowedIPs }}{{ end }}{{ if ne .Endpoint "" }}
+Endpoint = {{ .Endpoint }}{{ end }}
 {{ end }}
 `
 )
 
-func allowedIPs(s []string) string {
+func csvList(s []string) string {
 	return strings.Join(s, ", ")
 }
 
-type wireguardConfig struct {
+// Config is the Wireguard configuration
+type Config struct {
 	Iface      string
 	PrivateKey string
 	ListenPort int
 	Address    string
 	Peers      []*v1.Peer
+	DNS        []string
 }
 
-func generateNodeWireguardConfig(cfg *wireguardConfig) (string, error) {
+// GenerateNodeConfig generates the configuration for a node (server)
+func GenerateNodeConfig(cfg *Config, cfgPath string) (string, error) {
 	f, err := ioutil.TempFile("", "heimdall-wireguard-")
 	if err != nil {
 		return "", err
 	}
-	t, err := template.New("wireguard").Funcs(template.FuncMap{
-		"allowedIPs": allowedIPs,
-	}).Parse(wireguardTemplate)
+	t, err := template.New("wireguard-node").Funcs(template.FuncMap{
+		"csvList": csvList,
+	}).Parse(wireguardNodeTemplate)
 	if err != nil {
 		return "", err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(wireguardConfigPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(cfgPath), 0755); err != nil {
 		return "", err
 	}
 
@@ -91,7 +107,33 @@ func generateNodeWireguardConfig(cfg *wireguardConfig) (string, error) {
 	return f.Name(), nil
 }
 
-func generateWireguardKeys(ctx context.Context) (string, string, error) {
+// GeneratePeerConfig generates the configuration for a peer
+func GeneratePeerConfig(cfg *Config, cfgPath string) (string, error) {
+	f, err := ioutil.TempFile("", "heimdall-wireguard-")
+	if err != nil {
+		return "", err
+	}
+	t, err := template.New("wireguard-peer").Funcs(template.FuncMap{
+		"csvList": csvList,
+	}).Parse(wireguardPeerTemplate)
+	if err != nil {
+		return "", err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(cfgPath), 0755); err != nil {
+		return "", err
+	}
+
+	if err := t.Execute(f, cfg); err != nil {
+		return "", err
+	}
+	f.Close()
+
+	return f.Name(), nil
+}
+
+// GenerateWireguardKeys generates a new private/public Wireguard keypair
+func GenerateWireguardKeys(ctx context.Context) (string, string, error) {
 	kData, err := wg(ctx, nil, "genkey")
 	if err != nil {
 		return "", "", err
@@ -107,25 +149,21 @@ func generateWireguardKeys(ctx context.Context) (string, string, error) {
 	return privateKey, publicKey, nil
 }
 
-func getTunnelName() string {
-	return strings.Replace(filepath.Base(wireguardConfigPath), filepath.Ext(filepath.Base(wireguardConfigPath)), "", 1)
-}
-
-func restartWireguardTunnel(ctx context.Context) error {
-	tunnelName := getTunnelName()
-	logrus.Infof("restarting tunnel %s", tunnelName)
+// RestartTunnel restarts the named tunnel
+func RestartTunnel(ctx context.Context, name string) error {
+	logrus.Infof("restarting tunnel %s", name)
 	d, err := wg(ctx, nil)
 	if err != nil {
 		return err
 	}
 	// only stop if running
 	if string(d) != "" {
-		d, err := wgquick(ctx, "down", tunnelName)
+		d, err := wgquick(ctx, "down", name)
 		if err != nil {
 			return errors.Wrap(err, string(d))
 		}
 	}
-	u, err := wgquick(ctx, "up", tunnelName)
+	u, err := wgquick(ctx, "up", name)
 	if err != nil {
 		return errors.Wrap(err, string(u))
 	}

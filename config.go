@@ -21,6 +21,8 @@
 
 package heimdall
 
+import "time"
+
 // Config is the configuration used for the stellar server
 type Config struct {
 	// ID is the id of the node
@@ -39,6 +41,8 @@ type Config struct {
 	EndpointIP string
 	// GatewayPort is the port used for peer communication
 	EndpointPort int
+	// InterfaceName is the interface used for peer communication
+	InterfaceName string
 	// RedisURL is the uri to the redis backend
 	RedisURL string
 	// AdvertiseRedisURL is the uri to the public redis backend
@@ -53,4 +57,16 @@ type Config struct {
 	TLSClientKey string
 	// TLSInsecureSkipVerify disables certificate verification
 	TLSInsecureSkipVerify bool
+}
+
+// PeerConfig is the configuration of the peer
+type PeerConfig struct {
+	// ID is the id of the peer
+	ID string
+	// Address is the GRPC address of the peer to join
+	Address string
+	// UpdateInterval is the interval in which to update with the cluster
+	UpdateInterval time.Duration
+	// InterfaceName is the interface used for peer communication
+	InterfaceName string
 }

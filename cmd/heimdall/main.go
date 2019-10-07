@@ -107,6 +107,12 @@ func main() {
 			Value:  10100,
 			EnvVar: "HEIMDALL_ENDPOINT_PORT",
 		},
+		cli.StringFlag{
+			Name:   "interface-name",
+			Usage:  "interface name to use for peer communication (must not exist)",
+			Value:  "darknet",
+			EnvVar: "HEIMDALL_INTERFACE_NAME",
+		},
 	}
 	app.Before = func(c *cli.Context) error {
 		if c.Bool("debug") {

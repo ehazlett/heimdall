@@ -22,7 +22,11 @@
 package heimdall
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"sort"
 
 	"github.com/google/uuid"
@@ -95,4 +99,27 @@ func getInterfaceIP(iface net.Interface) string {
 	}
 
 	return ""
+}
+
+// HashData returns a sha256 sum of the specified data
+func HashData(data []byte) string {
+	h := sha256.New()
+	h.Write(data)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// HashConfig returns the sha256 hash of the specified path
+func HashConfig(cfgPath string) (string, error) {
+	if _, err := os.Stat(cfgPath); err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	peerData, err := ioutil.ReadFile(cfgPath)
+	if err != nil {
+		return "", err
+	}
+
+	return HashData(peerData), nil
 }

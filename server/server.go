@@ -25,6 +25,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 	"time"
@@ -37,22 +38,24 @@ import (
 	"github.com/stellarproject/heimdall"
 	v1 "github.com/stellarproject/heimdall/api/v1"
 	"github.com/stellarproject/heimdall/client"
+	"github.com/stellarproject/heimdall/wg"
 	"google.golang.org/grpc"
 )
 
 const (
-	masterKey       = "heimdall:master"
-	clusterKey      = "heimdall:key"
-	keypairsKey     = "heimdall:keypairs"
-	nodesKey        = "heimdall:nodes"
-	nodeJoinKey     = "heimdall:join"
-	peersKey        = "heimdall:peers"
-	routesKey       = "heimdall:routes"
-	peerIPsKey      = "heimdall:peerips"
-	nodeIPsKey      = "heimdall:nodeips"
-	nodeNetworksKey = "heimdall:nodenetworks"
+	masterKey          = "heimdall:master"
+	clusterKey         = "heimdall:key"
+	keypairsKey        = "heimdall:keypairs"
+	nodesKey           = "heimdall:nodes"
+	nodeJoinKey        = "heimdall:join"
+	peersKey           = "heimdall:peers"
+	routesKey          = "heimdall:routes"
+	peerIPsKey         = "heimdall:peerips"
+	nodeIPsKey         = "heimdall:nodeips"
+	nodeNetworksKey    = "heimdall:nodenetworks"
+	authorizedPeersKey = "heimdall:authorized"
 
-	wireguardConfigPath = "/etc/wireguard/darknet.conf"
+	wireguardConfigDir = "/etc/wireguard"
 )
 
 var (
@@ -118,7 +121,7 @@ func (s *Server) Run() error {
 		}
 		defer c.Close()
 
-		master, err := c.Connect(s.cfg.ClusterKey)
+		master, err := c.Join(s.cfg.ClusterKey)
 		if err != nil {
 			return err
 		}
@@ -149,7 +152,7 @@ func (s *Server) Run() error {
 	go s.nodeHeartbeat(ctx)
 
 	// initial peer info update
-	if err := s.updatePeerInfo(ctx); err != nil {
+	if err := s.updatePeerInfo(ctx, s.cfg.ID); err != nil {
 		return err
 	}
 
@@ -262,7 +265,7 @@ func (s *Server) getOrCreateKeyPair(ctx context.Context, id string) (*v1.KeyPair
 			return nil, err
 		}
 		logrus.Debugf("generating new keypair for %s", s.cfg.ID)
-		privateKey, publicKey, err := generateWireguardKeys(ctx)
+		privateKey, publicKey, err := wg.GenerateWireguardKeys(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -313,6 +316,14 @@ func (s *Server) getClient(addr string) (*client.Client, error) {
 
 func (s *Server) getClusterKey(ctx context.Context) (string, error) {
 	return redis.String(s.local(ctx, "GET", clusterKey))
+}
+
+func (s *Server) getWireguardConfigPath() string {
+	return filepath.Join(wireguardConfigDir, s.cfg.InterfaceName+".conf")
+}
+
+func (s *Server) getTunnelName() string {
+	return s.cfg.InterfaceName
 }
 
 func (s *Server) local(ctx context.Context, cmd string, args ...interface{}) (interface{}, error) {

@@ -19,50 +19,48 @@
 	USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package client
+package server
 
 import (
 	"context"
+	"errors"
 
+	"github.com/gogo/protobuf/proto"
+	"github.com/gomodule/redigo/redis"
+	"github.com/sirupsen/logrus"
 	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
-// AuthorizePeer authorizes a new peer to the cluster
-func (c *Client) AuthorizePeer(id string) error {
-	ctx := context.Background()
-	if _, err := c.heimdallClient.AuthorizePeer(ctx, &v1.AuthorizePeerRequest{
-		ID: id,
-	}); err != nil {
-		return err
-	}
-	return nil
-}
+var (
+	// ErrInvalidAuth is returned when an invalid cluster key is specified upon connect
+	ErrInvalidAuth = errors.New("invalid cluster key specified")
+	// ErrNoMaster is returned if there is no configured master yet
+	ErrNoMaster = errors.New("no configured master")
+)
 
-// DeauthorizePeer removes a peer from the cluster
-func (c *Client) DeauthorizePeer(id string) error {
-	ctx := context.Background()
-	if _, err := c.heimdallClient.DeauthorizePeer(ctx, &v1.DeauthorizePeerRequest{
-		ID: id,
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-// AuthorizedPeers returns a list of authorized peers
-func (c *Client) AuthorizedPeers() ([]string, error) {
-	ctx := context.Background()
-	resp, err := c.heimdallClient.AuthorizedPeers(ctx, &v1.AuthorizedPeersRequest{})
+// Join is called when a peer wants to join the cluster
+func (s *Server) Join(ctx context.Context, req *v1.JoinRequest) (*v1.JoinResponse, error) {
+	logrus.Debugf("join request from %s", req.ID)
+	key, err := s.getClusterKey(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return resp.IDs, nil
-}
+	if req.ClusterKey != key {
+		return nil, ErrInvalidAuth
+	}
+	data, err := redis.Bytes(s.local(ctx, "GET", masterKey))
+	if err != nil {
+		if err == redis.ErrNil {
+			return nil, ErrNoMaster
+		}
+		return nil, err
+	}
+	var master v1.Master
+	if err := proto.Unmarshal(data, &master); err != nil {
+		return nil, err
+	}
 
-// Connect requests to connect a peer to the cluster
-func (c *Client) Connect() (*v1.ConnectResponse, error) {
-	ctx := context.Background()
-	return c.heimdallClient.Connect(ctx, &v1.ConnectRequest{
-		ID: c.id,
-	})
+	return &v1.JoinResponse{
+		Master: &master,
+	}, nil
 }

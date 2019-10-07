@@ -4,6 +4,7 @@ NAMESPACE?=stellarproject
 IMAGE_NAMESPACE?=$(NAMESPACE)
 APP=heimdall
 CLI=hctl
+PEER=hpeer
 REPO?=$(NAMESPACE)/$(APP)
 TAG?=dev
 BUILD?=-dev
@@ -53,7 +54,7 @@ generate:
 bindir:
 	@mkdir -p bin
 
-binaries: cli daemon
+binaries: cli daemon peer
 
 cli: bindir
 	@>&2 echo " -> building cli ${COMMIT}${BUILD}"
@@ -62,6 +63,10 @@ cli: bindir
 daemon: bindir
 	@>&2 echo " -> building daemon ${COMMIT}${BUILD}"
 	@cd cmd/$(APP) && CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -installsuffix cgo -ldflags "-w -X github.com/$(REPO)/version.GitCommit=$(COMMIT) -X github.com/$(REPO)/version.Build=$(BUILD)" -o ../../bin/$(APP)$(BINARY_SUFFIX) .
+
+peer: bindir
+	@>&2 echo " -> building peer ${COMMIT}${BUILD}"
+	@cd cmd/$(PEER) && CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -installsuffix cgo -ldflags "-w -X github.com/$(REPO)/version.GitCommit=$(COMMIT) -X github.com/$(REPO)/version.Build=$(BUILD)" -o ../../bin/$(PEER)$(BINARY_SUFFIX) .
 
 vet:
 	@echo " -> $@"

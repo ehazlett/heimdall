@@ -10,6 +10,10 @@ option go_package = "github.com/stellarproject/heimdall/api/v1;v1";
 
 service Heimdall {
         rpc Connect(ConnectRequest) returns (ConnectResponse);
+        rpc AuthorizePeer(AuthorizePeerRequest) returns (google.protobuf.Empty);
+        rpc DeauthorizePeer(DeauthorizePeerRequest) returns (google.protobuf.Empty);
+        rpc AuthorizedPeers(AuthorizedPeersRequest) returns (AuthorizedPeersResponse);
+        rpc Join(JoinRequest) returns (JoinResponse);
         rpc Routes(RoutesRequest) returns (RoutesResponse);
         rpc CreateRoute(CreateRouteRequest) returns (google.protobuf.Empty);
         rpc DeleteRoute(DeleteRouteRequest) returns (google.protobuf.Empty);
@@ -23,13 +27,38 @@ message Master {
         string redis_url = 3 [(gogoproto.customname) = "RedisURL"];
 }
 
-message ConnectRequest {
+message JoinRequest {
         string id = 1 [(gogoproto.customname) = "ID"];
         string cluster_key = 2;
 }
 
-message ConnectResponse {
+message JoinResponse {
         Master master = 1;
+}
+
+message ConnectRequest {
+        string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message ConnectResponse {
+        KeyPair keypair = 1 [(gogoproto.customname) = "KeyPair"];
+        string address = 2;
+        repeated Peer peers = 3;
+        repeated string dns = 4 [(gogoproto.customname) = "DNS"];
+}
+
+message AuthorizePeerRequest {
+        string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message DeauthorizePeerRequest {
+        string id = 1 [(gogoproto.customname) = "ID"];
+}
+
+message AuthorizedPeersRequest {}
+
+message AuthorizedPeersResponse {
+        repeated string ids = 1 [(gogoproto.customname) = "IDs"];
 }
 
 message KeyPair {
