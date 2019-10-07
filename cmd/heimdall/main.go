@@ -61,6 +61,12 @@ func main() {
 			EnvVar: "HEIMDALL_GRPC_ADDR",
 		},
 		cli.StringFlag{
+			Name:   "advertise-grpc-address",
+			Usage:  "public advertise grpc address",
+			Value:  fmt.Sprintf("tcp://%s:%d", heimdall.GetIP(), defaultGRPCPort),
+			EnvVar: "HEIMDALL_ADVERTISE_GRPC_ADDR",
+		},
+		cli.StringFlag{
 			Name:   "redis-url, r",
 			Usage:  "uri for datastore backend",
 			Value:  "redis://127.0.0.1:6379/0",

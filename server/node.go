@@ -99,7 +99,7 @@ func (s *Server) configureNode() error {
 				return err
 			}
 			// ignore self
-			if node.Addr == s.cfg.GRPCAddress {
+			if node.ID == s.cfg.ID {
 				continue
 			}
 
@@ -277,7 +277,7 @@ func (s *Server) updateMasterInfo(ctx context.Context) error {
 	}
 	m := &v1.Master{
 		ID:          s.cfg.ID,
-		GRPCAddress: s.cfg.GRPCAddress,
+		GRPCAddress: s.cfg.AdvertiseGRPCAddress,
 		RedisURL:    s.cfg.AdvertiseRedisURL,
 	}
 	data, err := proto.Marshal(m)
