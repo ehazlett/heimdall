@@ -4,6 +4,7 @@ package io.stellarproject.heimdall.api.v1;
 
 import "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/stellarproject/heimdall/api/v1;v1";
 
@@ -43,6 +44,7 @@ message Node {
         string endpoint_ip = 4 [(gogoproto.customname) = "EndpointIP"];
         uint64 endpoint_port = 5;
         string gateway_ip = 6 [(gogoproto.customname) = "GatewayIP"];
+        google.protobuf.Timestamp updated = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
 }
 
 message NodesRequest {}

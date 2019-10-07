@@ -24,6 +24,7 @@ package server
 import (
 	"context"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -121,6 +122,8 @@ func (s *Server) configureNode() error {
 				continue
 			}
 
+			go s.replicaMonitor()
+
 			return nil
 		}
 	}
@@ -178,6 +181,16 @@ func (s *Server) replicaMonitor() {
 		for range t.C {
 			if _, err := redis.Bytes(s.local(context.Background(), "GET", masterKey)); err != nil {
 				if err == redis.ErrNil {
+					// skip configure until new leader election
+					n, err := s.getNextMaster(context.Background())
+					if err != nil {
+						logrus.Error(err)
+						continue
+					}
+					if n.ID != s.cfg.ID {
+						logrus.Debugf("waiting for new master to initialize: %s", n.ID)
+						continue
+					}
 					if err := s.configureNode(); err != nil {
 						logrus.Error(err)
 						continue
@@ -192,6 +205,18 @@ func (s *Server) replicaMonitor() {
 	<-s.replicaCh
 	logrus.Debug("stopping replica monitor")
 	t.Stop()
+}
+
+func (s *Server) getNextMaster(ctx context.Context) (*v1.Node, error) {
+	nodes, err := s.getNodes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(nodes) == 0 {
+		return nil, nil
+	}
+	sort.SliceStable(nodes, func(i, j int) bool { return nodes[i].Updated.Before(nodes[j].Updated) })
+	return nodes[len(nodes)-1], nil
 }
 
 func (s *Server) masterHeartbeat() {
@@ -286,6 +311,7 @@ func (s *Server) nodeHeartbeat(ctx context.Context) {
 			continue
 		}
 		node := &v1.Node{
+			Updated:      time.Now(),
 			ID:           s.cfg.ID,
 			Addr:         s.cfg.GRPCAddress,
 			KeyPair:      keyPair,

@@ -34,6 +34,8 @@ import (
 var (
 	// ErrInvalidAuth is returned when an invalid cluster key is specified upon connect
 	ErrInvalidAuth = errors.New("invalid cluster key specified")
+	// ErrNoMaster is returned if there is no configured master yet
+	ErrNoMaster = errors.New("no configured master")
 )
 
 // Connect is called when a peer wants to connect to the node
@@ -48,6 +50,9 @@ func (s *Server) Connect(ctx context.Context, req *v1.ConnectRequest) (*v1.Conne
 	}
 	data, err := redis.Bytes(s.local(ctx, "GET", masterKey))
 	if err != nil {
+		if err == redis.ErrNil {
+			return nil, ErrNoMaster
+		}
 		return nil, err
 	}
 	var master v1.Master

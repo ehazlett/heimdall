@@ -26,6 +26,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/urfave/cli"
 )
 
@@ -53,10 +54,10 @@ var listNodesCommand = cli.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
-		fmt.Fprintf(w, "ID\tADDR\tENDPOINT\tGATEWAY\tPUBLIC KEY\n")
+		fmt.Fprintf(w, "ID\tADDR\tENDPOINT\tGATEWAY\tUPDATED\tPUBLIC KEY\n")
 		for _, n := range nodes {
 			ep := fmt.Sprintf("%s:%d", n.EndpointIP, n.EndpointPort)
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", n.ID, n.Addr, ep, n.GatewayIP, n.KeyPair.PublicKey)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", n.ID, n.Addr, ep, n.GatewayIP, humanize.Time(n.Updated), n.KeyPair.PublicKey)
 		}
 		w.Flush()
 

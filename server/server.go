@@ -58,7 +58,7 @@ const (
 var (
 	empty                    = &ptypes.Empty{}
 	masterHeartbeatInterval  = time.Second * 5
-	nodeHeartbeatInterval    = time.Second * 60
+	nodeHeartbeatInterval    = time.Second * 15
 	nodeHeartbeatExpiry      = 86400
 	peerConfigUpdateInterval = time.Second * 10
 
@@ -130,7 +130,6 @@ func (s *Server) Run() error {
 
 		go s.replicaMonitor()
 	} else {
-		// starting as master; remove existing key
 		if err := s.configureNode(); err != nil {
 			return err
 		}
