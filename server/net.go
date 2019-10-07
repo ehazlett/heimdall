@@ -29,6 +29,7 @@ import (
 	"strings"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 )
 
 type subnetRange struct {
@@ -37,8 +38,8 @@ type subnetRange struct {
 	Subnet *net.IPNet
 }
 
-func (s *Server) updateNodeNetwork(ctx context.Context, subnet string) error {
-	if _, err := s.master(ctx, "SET", s.getNodeNetworkKey(s.cfg.ID), subnet); err != nil {
+func (s *Server) updateNodeNetwork(ctx context.Context, id string, subnet string) error {
+	if _, err := s.master(ctx, "SET", s.getNodeNetworkKey(id), subnet); err != nil {
 		return err
 	}
 	return nil
@@ -70,7 +71,7 @@ func (s *Server) getOrAllocatePeerIP(ctx context.Context, id string) (net.IP, *n
 func (s *Server) getNodeIP(ctx context.Context, id string) (net.IP, *net.IPNet, error) {
 	subnet, err := redis.String(s.local(ctx, "GET", s.getNodeNetworkKey(id)))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "error getting node ip")
 	}
 	r, err := parseSubnetRange(subnet)
 	if err != nil {

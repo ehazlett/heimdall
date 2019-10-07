@@ -5,5 +5,3 @@ auto-elects in the event of a current master failure.  Non-node peers are also s
 can only access the network but do not provide routing capabilities.
 
 ![Heimdall](docs/overview.png)
-
-#

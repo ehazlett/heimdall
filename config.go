@@ -29,6 +29,8 @@ type Config struct {
 	ID string
 	// GRPCAddress is the address for the grpc server
 	GRPCAddress string
+	// AdvertiseGRPCAddress is the public address for the grpc server
+	AdvertiseGRPCAddress string
 	// GRPCPeerAddress is the peer address to join
 	GRPCPeerAddress string
 	// ClusterKey is a preshared key for cluster peers

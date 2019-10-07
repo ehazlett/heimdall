@@ -25,15 +25,22 @@ message Master {
         string id = 1 [(gogoproto.customname) = "ID"];
         string grpc_address = 2 [(gogoproto.customname) = "GRPCAddress"];
         string redis_url = 3 [(gogoproto.customname) = "RedisURL"];
+        repeated Peer peers = 5;
 }
 
 message JoinRequest {
         string id = 1 [(gogoproto.customname) = "ID"];
         string cluster_key = 2;
+        string grpc_address = 3 [(gogoproto.customname) = "GRPCAddress"];
+        string endpoint_ip = 4 [(gogoproto.customname) = "EndpointIP"];
+        uint64 endpoint_port = 5;
+        string interface_name = 6;
 }
 
 message JoinResponse {
         Master master = 1;
+        Node node = 2;
+        repeated Peer peers = 3;
 }
 
 message ConnectRequest {
@@ -74,6 +81,7 @@ message Node {
         uint64 endpoint_port = 5;
         string gateway_ip = 6 [(gogoproto.customname) = "GatewayIP"];
         google.protobuf.Timestamp updated = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+        string interface_name = 8;
 }
 
 message NodesRequest {}

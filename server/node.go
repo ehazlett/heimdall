@@ -23,6 +23,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"sort"
 	"strings"
@@ -82,24 +83,15 @@ func (s *Server) getNode(ctx context.Context, id string) (*v1.Node, error) {
 
 func (s *Server) configureNode() error {
 	ctx := context.Background()
-	nodeKeys, err := redis.Strings(s.local(ctx, "KEYS", s.getNodeKey("*")))
+	nodes, err := s.getNodes(ctx)
 	if err != nil {
 		return err
 	}
 	// attempt to connect to existing
-	if len(nodeKeys) > 0 {
-		for _, nodeKey := range nodeKeys {
-			nodeData, err := redis.Bytes(s.local(ctx, "GET", nodeKey))
-			if err != nil {
-				logrus.Warn(err)
-				continue
-			}
-			var node v1.Node
-			if err := proto.Unmarshal(nodeData, &node); err != nil {
-				return err
-			}
+	if len(nodes) > 0 {
+		for _, node := range nodes {
 			// ignore self
-			if node.Addr == s.cfg.GRPCAddress {
+			if node.ID == s.cfg.ID {
 				continue
 			}
 
@@ -109,14 +101,28 @@ func (s *Server) configureNode() error {
 				logrus.Warn(err)
 				continue
 			}
-			m, err := c.Join(s.cfg.ClusterKey)
+			r, err := c.Join(&v1.JoinRequest{
+				ID:            s.cfg.ID,
+				ClusterKey:    s.cfg.ClusterKey,
+				GRPCAddress:   s.cfg.GRPCAddress,
+				EndpointIP:    s.cfg.EndpointIP,
+				EndpointPort:  uint64(s.cfg.EndpointPort),
+				InterfaceName: s.cfg.InterfaceName,
+			})
 			if err != nil {
 				c.Close()
 				logrus.Warn(err)
 				continue
 			}
 
-			if err := s.joinMaster(m); err != nil {
+			// TODO: start tunnel
+			if err := s.updatePeerConfig(ctx, r.Node, r.Peers); err != nil {
+				return err
+			}
+			// TODO: wait for tunnel to come up
+			time.Sleep(time.Second * 20)
+
+			if err := s.joinMaster(r.Master); err != nil {
 				c.Close()
 				logrus.Warn(err)
 				continue
@@ -154,6 +160,8 @@ func (s *Server) configureNode() error {
 		return err
 	}
 
+	// TODO: start tunnel
+
 	if err := s.joinMaster(&master); err != nil {
 		return err
 	}
@@ -163,14 +171,19 @@ func (s *Server) configureNode() error {
 	return nil
 }
 
-func (s *Server) disableReplica() {
-	s.wpool = getPool(s.cfg.RedisURL)
+func (s *Server) disableReplica() error {
+	p, err := getPool(s.cfg.RedisURL)
+	if err != nil {
+		return err
+	}
+	s.wpool = p
 
 	// signal replica monitor to stop if started as a peer
 	close(s.replicaCh)
 
 	// unset peer
 	s.cfg.GRPCPeerAddress = ""
+	return nil
 }
 
 func (s *Server) replicaMonitor() {
@@ -187,7 +200,7 @@ func (s *Server) replicaMonitor() {
 						logrus.Error(err)
 						continue
 					}
-					if n.ID != s.cfg.ID {
+					if n == nil || n.ID != s.cfg.ID {
 						logrus.Debugf("waiting for new master to initialize: %s", n.ID)
 						continue
 					}
@@ -242,12 +255,15 @@ func (s *Server) masterHeartbeat() {
 func (s *Server) joinMaster(m *v1.Master) error {
 	// configure replica
 	logrus.Infof("configuring node as replica of %+v", m.ID)
-	conn, err := redis.DialURL(s.cfg.RedisURL)
+	pool, err := getPool(s.cfg.RedisURL)
 	if err != nil {
-		return errors.Wrap(err, "unable to connect to redis")
+		return err
 	}
+
+	conn := pool.Get()
 	defer conn.Close()
 
+	logrus.Debugf("configuring redis as slave of %s", m.RedisURL)
 	u, err := url.Parse(m.RedisURL)
 	if err != nil {
 		return errors.Wrap(err, "error parsing master redis url")
@@ -258,15 +274,11 @@ func (s *Server) joinMaster(m *v1.Master) error {
 	if _, err := conn.Do("REPLICAOF", host, port); err != nil {
 		return err
 	}
-	// auth
-	auth, ok := u.User.Password()
-	if ok {
-		if _, err := conn.Do("CONFIG", "SET", "MASTERAUTH", auth); err != nil {
-			return errors.Wrap(err, "error authenticating to redis")
-		}
-	}
 
-	s.wpool = getPool(m.RedisURL)
+	s.wpool, err = getPool(m.RedisURL)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -275,10 +287,21 @@ func (s *Server) updateMasterInfo(ctx context.Context) error {
 	if _, err := s.master(ctx, "SET", clusterKey, s.cfg.ClusterKey); err != nil {
 		return err
 	}
+	// build redis url with gateway ip
+	gatewayIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
+	if err != nil {
+		return err
+	}
+	u, err := url.Parse(s.cfg.RedisURL)
+	if err != nil {
+		return err
+	}
+	// update master redis url to gateway to serve over wireguard
+	u.Host = fmt.Sprintf("%s:%s", gatewayIP.String(), u.Port())
 	m := &v1.Master{
 		ID:          s.cfg.ID,
-		GRPCAddress: s.cfg.GRPCAddress,
-		RedisURL:    s.cfg.AdvertiseRedisURL,
+		GRPCAddress: s.cfg.AdvertiseGRPCAddress,
+		RedisURL:    u.String(),
 	}
 	data, err := proto.Marshal(m)
 	if err != nil {
@@ -292,48 +315,91 @@ func (s *Server) updateMasterInfo(ctx context.Context) error {
 	if _, err := s.master(ctx, "EXPIRE", masterKey, int(masterHeartbeatInterval.Seconds())); err != nil {
 		return errors.Wrap(err, "error setting expire for master info")
 	}
+
 	return nil
 }
 
-func (s *Server) nodeHeartbeat(ctx context.Context) {
+func (s *Server) updateNodeInfo(ctx context.Context) {
 	logrus.Debugf("starting node heartbeat: ttl=%s", nodeHeartbeatInterval)
 	t := time.NewTicker(nodeHeartbeatInterval)
-	key := s.getNodeKey(s.cfg.ID)
 	for range t.C {
-		keyPair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
-		if err != nil {
-			logrus.Error(err)
-			continue
-		}
-		nodeIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
-		if err != nil {
-			logrus.Error(err)
-			continue
-		}
-		node := &v1.Node{
-			Updated:      time.Now(),
-			ID:           s.cfg.ID,
-			Addr:         s.cfg.GRPCAddress,
-			KeyPair:      keyPair,
-			EndpointIP:   s.cfg.EndpointIP,
-			EndpointPort: uint64(s.cfg.EndpointPort),
-			GatewayIP:    nodeIP.String(),
-		}
-
-		data, err := proto.Marshal(node)
-		if err != nil {
-			logrus.Error(err)
-			continue
-		}
-
-		if _, err := s.master(ctx, "SET", key, data); err != nil {
-			logrus.Error(err)
-			continue
-		}
-
-		if _, err := s.master(ctx, "EXPIRE", key, nodeHeartbeatExpiry); err != nil {
+		if err := s.updateLocalNodeInfo(ctx); err != nil {
 			logrus.Error(err)
 			continue
 		}
 	}
+}
+
+func (s *Server) updateLocalNodeInfo(ctx context.Context) error {
+	key := s.getNodeKey(s.cfg.ID)
+	keyPair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
+	if err != nil {
+		return err
+	}
+	nodeIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
+	if err != nil {
+		return err
+	}
+	node := &v1.Node{
+		Updated:       time.Now(),
+		ID:            s.cfg.ID,
+		Addr:          s.cfg.GRPCAddress,
+		KeyPair:       keyPair,
+		EndpointIP:    s.cfg.EndpointIP,
+		EndpointPort:  uint64(s.cfg.EndpointPort),
+		GatewayIP:     nodeIP.String(),
+		InterfaceName: s.cfg.InterfaceName,
+	}
+
+	data, err := proto.Marshal(node)
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.master(ctx, "SET", key, data); err != nil {
+		return err
+	}
+
+	if _, err := s.master(ctx, "EXPIRE", key, nodeHeartbeatExpiry); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) createNode(ctx context.Context, req *v1.JoinRequest) (*v1.Node, error) {
+	key := s.getNodeKey(req.ID)
+	keyPair, err := s.getOrCreateKeyPair(ctx, req.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting/creating keypair for %s", req.ID)
+	}
+	nodeIP, _, err := s.getNodeIP(ctx, req.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting node ip for %s", req.ID)
+	}
+	node := &v1.Node{
+		Updated:       time.Now(),
+		ID:            req.ID,
+		Addr:          req.GRPCAddress,
+		KeyPair:       keyPair,
+		EndpointIP:    req.EndpointIP,
+		EndpointPort:  uint64(req.EndpointPort),
+		GatewayIP:     nodeIP.String(),
+		InterfaceName: req.InterfaceName,
+	}
+
+	data, err := proto.Marshal(node)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.master(ctx, "SET", key, data); err != nil {
+		return nil, err
+	}
+
+	if _, err := s.master(ctx, "EXPIRE", key, nodeHeartbeatExpiry); err != nil {
+		return nil, err
+	}
+
+	return node, nil
 }

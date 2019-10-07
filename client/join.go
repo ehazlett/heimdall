@@ -28,15 +28,7 @@ import (
 )
 
 // Join attempts to connect to the peer and returns the master info
-func (c *Client) Join(key string) (*v1.Master, error) {
+func (c *Client) Join(req *v1.JoinRequest) (*v1.JoinResponse, error) {
 	ctx := context.Background()
-	resp, err := c.heimdallClient.Join(ctx, &v1.JoinRequest{
-		ID:         c.id,
-		ClusterKey: key,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Master, nil
+	return c.heimdallClient.Join(ctx, req)
 }
