@@ -18,6 +18,9 @@ Security and privacy are a core component of the network.  UUIDs are generated f
 and both can use optional TLS to connect to the network.  All communication happens over Wireguard or minimal
 management over the GRPC API.
 
+For connectivity, you will need to configure firewalls to allow the GRPC port (default 9000) and the Endpoint
+Port (Wireguard, default: 10100).
+
 ## Node
 A Node is a machine in the network that operates as a gateway.  Nodes get a /16 by default to provide
 network access to services.  Since all nodes are created equal, a pre-shared cluster key is used for access
