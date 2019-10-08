@@ -216,7 +216,7 @@ First, get the ID of the peer:
 
 ```bash
 $> hpeer -v
-peer version=0.1.0-dev (f845269a.m) linux/amd64 id=9684c4f6-5bf1-502f-953b-2abc943911c4
+peer version=0.1.0-dev (f845269a.m) linux/amd64 id=9e915536-830e-555b-b74c-d4495c0c3467
 ```
 
 Next, authorize the ID in the cluster:
