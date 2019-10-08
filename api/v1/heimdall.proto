@@ -25,6 +25,7 @@ message Master {
         string id = 1 [(gogoproto.customname) = "ID"];
         string grpc_address = 2 [(gogoproto.customname) = "GRPCAddress"];
         string redis_url = 3 [(gogoproto.customname) = "RedisURL"];
+        string gateway_ip = 4 [(gogoproto.customname) = "GatewayIP"];
         repeated Peer peers = 5;
 }
 

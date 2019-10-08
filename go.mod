@@ -6,6 +6,7 @@ require (
 	github.com/certifi/gocertifi v0.0.0-20190905060710-a5e0173ced67 // indirect
 	github.com/containerd/typeurl v0.0.0-20190911142611-5eb25027c9fd
 	github.com/crosbymichael/guard v0.0.0-20190716141324-5c2daadf8067 // indirect
+	github.com/digineo/go-ping v1.0.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getsentry/raven-go v0.2.0 // indirect
 	github.com/gogo/googleapis v1.3.0

@@ -22,15 +22,20 @@
 package server
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"time"
 
+	ping "github.com/digineo/go-ping"
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
@@ -137,16 +142,24 @@ func (s *Server) Run() error {
 			return err
 		}
 
-		logrus.Debugf("response: %+v", r)
+		logrus.Debugf("master info received: %+v", r)
 		// start tunnel
 		if err := s.updatePeerConfig(ctx, r.Node, r.Peers); err != nil {
 			return errors.Wrap(err, "error updating peer config")
 		}
-		// TODO: wait for tunnel to come up
-		time.Sleep(time.Second * 20)
 
-		logrus.Debugf("master info received: %+v", r)
+		// wait for tunnel to come up
+		if err := s.waitForMaster(ctx, r.Master); err != nil {
+			return errors.Wrap(err, "error waiting for master")
+		}
+
+		logrus.Debugf("joining master: %s", r.Master.ID)
 		if err := s.joinMaster(r.Master); err != nil {
+			return err
+		}
+
+		logrus.Debug("waiting for redis sync")
+		if err := s.waitForRedisSync(ctx); err != nil {
 			return err
 		}
 
@@ -251,6 +264,80 @@ func getPool(redisUrl string) (*redis.Pool, error) {
 	return pool, nil
 }
 
+func (s *Server) waitForMaster(ctx context.Context, m *v1.Master) error {
+	p, err := ping.New("0.0.0.0", "")
+	if err != nil {
+		return err
+	}
+	defer p.Close()
+
+	doneCh := make(chan time.Duration)
+	errCh := make(chan error)
+
+	go func() {
+		for {
+			ip, err := net.ResolveIPAddr("ip4", m.GatewayIP)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			rtt, err := p.Ping(ip, time.Second*30)
+			if err != nil {
+				errCh <- err
+			}
+			doneCh <- rtt
+		}
+	}()
+
+	select {
+	case rtt := <-doneCh:
+		logrus.Debugf("rtt master ping: %s", rtt)
+		return nil
+	case err := <-errCh:
+		return err
+	}
+	return nil
+}
+
+func (s *Server) waitForRedisSync(ctx context.Context) error {
+	doneCh := make(chan bool)
+	errCh := make(chan error)
+
+	go func() {
+		for {
+			info, err := redis.String(s.local(ctx, "INFO", "REPLICATION"))
+			if err != nil {
+				logrus.Warn(err)
+				continue
+			}
+
+			b := bytes.NewBufferString(info)
+			s := bufio.NewScanner(b)
+
+			for s.Scan() {
+				v := s.Text()
+				parts := strings.SplitN(v, ":", 2)
+				if parts[0] == "master_link_status" {
+					if parts[1] == "up" {
+						doneCh <- true
+						return
+					}
+				}
+			}
+			time.Sleep(time.Second * 1)
+		}
+	}()
+
+	select {
+	case <-doneCh:
+		return nil
+	case err := <-errCh:
+		return err
+	case <-time.After(nodeHeartbeatInterval):
+		return fmt.Errorf("timeout waiting on sync")
+	}
+}
+
 func (s *Server) ensureNetworkSubnet(ctx context.Context, id string) error {
 	network, err := redis.String(s.local(ctx, "GET", s.getNodeNetworkKey(id)))
 	if err != nil {
@@ -267,6 +354,7 @@ func (s *Server) ensureNetworkSubnet(ctx context.Context, id string) error {
 		if err != nil {
 			return err
 		}
+		logrus.Debugf("node networks: %s", nodeNetworkKeys)
 		lookup := map[string]struct{}{}
 		for _, netKey := range nodeNetworkKeys {
 			n, err := redis.String(s.local(ctx, "GET", netKey))
@@ -275,6 +363,8 @@ func (s *Server) ensureNetworkSubnet(ctx context.Context, id string) error {
 			}
 			lookup[n] = struct{}{}
 		}
+
+		logrus.Debugf("lookup: %+v", lookup)
 
 		subnet := r.Subnet
 		size, _ := subnet.Mask.Size()

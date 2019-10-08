@@ -234,15 +234,10 @@ func (s *Server) updatePeerConfig(ctx context.Context, node *v1.Node, peers []*v
 		nodePeers = append(nodePeers, peer)
 	}
 
-	keyPair, err := s.getOrCreateKeyPair(ctx, node.ID)
-	if err != nil {
-		return err
-	}
-
 	//size, _ := gatewayNet.Mask.Size()
 	wireguardCfg := &wg.Config{
 		Iface:      node.InterfaceName,
-		PrivateKey: keyPair.PrivateKey,
+		PrivateKey: node.KeyPair.PrivateKey,
 		ListenPort: int(node.EndpointPort),
 		Address:    fmt.Sprintf("%s/%d", node.GatewayIP, 16),
 		Peers:      nodePeers,

@@ -30,6 +30,7 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type subnetRange struct {
@@ -39,6 +40,7 @@ type subnetRange struct {
 }
 
 func (s *Server) updateNodeNetwork(ctx context.Context, id string, subnet string) error {
+	logrus.Debugf("updating node network: id=%s subnet=%s", id, subnet)
 	if _, err := s.master(ctx, "SET", s.getNodeNetworkKey(id), subnet); err != nil {
 		return err
 	}

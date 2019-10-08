@@ -115,17 +115,24 @@ func (s *Server) configureNode() error {
 				continue
 			}
 
-			// TODO: start tunnel
+			// start tunnel
 			if err := s.updatePeerConfig(ctx, r.Node, r.Peers); err != nil {
 				return err
 			}
-			// TODO: wait for tunnel to come up
-			time.Sleep(time.Second * 20)
+			//  wait for tunnel to come up
+			if err := s.waitForMaster(ctx, r.Master); err != nil {
+				return err
+			}
 
 			if err := s.joinMaster(r.Master); err != nil {
 				c.Close()
 				logrus.Warn(err)
 				continue
+			}
+
+			logrus.Debug("waiting for redis sync")
+			if err := s.waitForRedisSync(ctx); err != nil {
+				return err
 			}
 
 			go s.replicaMonitor()
@@ -200,10 +207,12 @@ func (s *Server) replicaMonitor() {
 						logrus.Error(err)
 						continue
 					}
+					logrus.Debugf("replica monitor: node=%s", n)
 					if n == nil || n.ID != s.cfg.ID {
-						logrus.Debugf("waiting for new master to initialize: %s", n.ID)
+						logrus.Debug("waiting for new master to initialize")
 						continue
 					}
+					logrus.Debugf("replica monitor: configuring node with master %+v", n)
 					if err := s.configureNode(); err != nil {
 						logrus.Error(err)
 						continue
@@ -285,11 +294,13 @@ func (s *Server) joinMaster(m *v1.Master) error {
 func (s *Server) updateMasterInfo(ctx context.Context) error {
 	// update master info
 	if _, err := s.master(ctx, "SET", clusterKey, s.cfg.ClusterKey); err != nil {
+		logrus.Error("updateMasterInfo.setClusterKey")
 		return err
 	}
 	// build redis url with gateway ip
 	gatewayIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
 	if err != nil {
+		logrus.Error("updateMasterInfo.getNodeIP")
 		return err
 	}
 	u, err := url.Parse(s.cfg.RedisURL)
@@ -302,6 +313,7 @@ func (s *Server) updateMasterInfo(ctx context.Context) error {
 		ID:          s.cfg.ID,
 		GRPCAddress: s.cfg.AdvertiseGRPCAddress,
 		RedisURL:    u.String(),
+		GatewayIP:   gatewayIP.String(),
 	}
 	data, err := proto.Marshal(m)
 	if err != nil {
@@ -334,11 +346,11 @@ func (s *Server) updateLocalNodeInfo(ctx context.Context) error {
 	key := s.getNodeKey(s.cfg.ID)
 	keyPair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error getting keypair for %s", s.cfg.ID)
 	}
 	nodeIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error getting node IP for %s", s.cfg.ID)
 	}
 	node := &v1.Node{
 		Updated:       time.Now(),
