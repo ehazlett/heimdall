@@ -53,7 +53,7 @@ Note: the `edge` repositories must be enabled to get the Wireguard packages.  Un
 This can be peformed with the following:
 
 ```bash
-$> apk add -U wireguard-vanilla wireguard-tools iptables ip6tables
+$> apk add -U wireguard-vanilla wireguard-tools iptables ip6tables redis
 ```
 
 Note: make sure to reboot after installation so the kernel modules can be properly loaded.
