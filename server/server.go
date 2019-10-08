@@ -149,6 +149,7 @@ func (s *Server) Run() error {
 		}
 
 		// wait for tunnel to come up
+		logrus.Infof("waiting for master %s", r.Master.ID)
 		if err := s.waitForMaster(ctx, r.Master); err != nil {
 			return errors.Wrap(err, "error waiting for master")
 		}
@@ -158,7 +159,7 @@ func (s *Server) Run() error {
 			return err
 		}
 
-		logrus.Debug("waiting for redis sync")
+		logrus.Infof("waiting for redis sync with %s", r.Master.ID)
 		if err := s.waitForRedisSync(ctx); err != nil {
 			return err
 		}
@@ -253,7 +254,6 @@ func getPool(redisUrl string) (*redis.Pool, error) {
 
 		auth, ok := u.User.Password()
 		if ok {
-			logrus.Debug("setting masterauth for redis")
 			if _, err := conn.Do("CONFIG", "SET", "MASTERAUTH", auth); err != nil {
 				return nil, errors.Wrap(err, "error authenticating to redis")
 			}

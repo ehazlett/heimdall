@@ -120,6 +120,7 @@ func (s *Server) configureNode() error {
 				return err
 			}
 			//  wait for tunnel to come up
+			logrus.Infof("waiting for master %s", r.Master.ID)
 			if err := s.waitForMaster(ctx, r.Master); err != nil {
 				return err
 			}
@@ -130,7 +131,7 @@ func (s *Server) configureNode() error {
 				continue
 			}
 
-			logrus.Debug("waiting for redis sync")
+			logrus.Infof("waiting for redis sync with %s", r.Master.ID)
 			if err := s.waitForRedisSync(ctx); err != nil {
 				return err
 			}
@@ -272,7 +273,7 @@ func (s *Server) joinMaster(m *v1.Master) error {
 	conn := pool.Get()
 	defer conn.Close()
 
-	logrus.Debugf("configuring redis as slave of %s", m.RedisURL)
+	logrus.Debugf("configuring redis as slave of %s", m.ID)
 	u, err := url.Parse(m.RedisURL)
 	if err != nil {
 		return errors.Wrap(err, "error parsing master redis url")

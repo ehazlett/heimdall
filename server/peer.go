@@ -71,7 +71,6 @@ func (s *Server) peerUpdater(ctx context.Context) {
 	logrus.Debugf("starting peer config updater: ttl=%s", peerConfigUpdateInterval)
 	t := time.NewTicker(peerConfigUpdateInterval)
 	for range t.C {
-		logrus.Debug("peer config update")
 		uctx, cancel := context.WithTimeout(ctx, peerConfigUpdateInterval)
 		if err := s.updatePeerInfo(uctx, s.cfg.ID); err != nil {
 			logrus.Errorf("updateLocalPeerInfo: %s", err)
@@ -85,8 +84,6 @@ func (s *Server) peerUpdater(ctx context.Context) {
 			cancel()
 			continue
 		}
-
-		logrus.Debugf("peer update: peers %+v", peers)
 
 		node, err := s.getNode(ctx, s.cfg.ID)
 		if err != nil {

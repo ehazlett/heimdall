@@ -73,12 +73,6 @@ func main() {
 			EnvVar: "HEIMDALL_REDIS_URL",
 		},
 		cli.StringFlag{
-			Name:   "advertise-redis-url, p",
-			Usage:  "advertise uri for peers",
-			Value:  fmt.Sprintf("redis://%s:6379/0", heimdall.GetIP()),
-			EnvVar: "HEIMDALL_ADVERTISE_REDIS_URL",
-		},
-		cli.StringFlag{
 			Name:   "peer",
 			Usage:  "grpc address to join a peer",
 			EnvVar: "HEIMDALL_PEER",

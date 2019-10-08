@@ -52,7 +52,6 @@ func runServer(cx *cli.Context) error {
 		EndpointPort:         cx.Int("endpoint-port"),
 		InterfaceName:        cx.String("interface-name"),
 		RedisURL:             cx.String("redis-url"),
-		AdvertiseRedisURL:    cx.String("advertise-redis-url"),
 	}
 
 	errCh := make(chan error, 1)

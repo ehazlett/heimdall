@@ -47,8 +47,6 @@ type Config struct {
 	InterfaceName string
 	// RedisURL is the uri to the redis backend
 	RedisURL string
-	// AdvertiseRedisURL is the uri to the public redis backend
-	AdvertiseRedisURL string
 	// TLSCertificate is the certificate used for grpc communication
 	TLSServerCertificate string
 	// TLSKey is the key used for grpc communication
