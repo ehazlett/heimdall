@@ -31,14 +31,12 @@ import (
 	"github.com/stellarproject/heimdall/wg"
 )
 
-func (p *Peer) sync() error {
+func (p *Peer) sync(ctx context.Context) error {
 	c, err := p.getClient(p.cfg.Address)
 	if err != nil {
 		return err
 	}
 	defer c.Close()
-
-	ctx := context.Background()
 
 	resp, err := c.Connect()
 	if err != nil {

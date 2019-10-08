@@ -113,6 +113,30 @@ func main() {
 			Value:  "darknet",
 			EnvVar: "HEIMDALL_INTERFACE_NAME",
 		},
+		cli.StringFlag{
+			Name:  "cert, c",
+			Usage: "heimdall server certificate",
+			Value: "",
+		},
+		cli.StringFlag{
+			Name:  "key, k",
+			Usage: "heimdall server key",
+			Value: "",
+		},
+		cli.StringFlag{
+			Name:  "client-cert",
+			Usage: "heimdall client certificate",
+			Value: "",
+		},
+		cli.StringFlag{
+			Name:  "client-key",
+			Usage: "heimdall client key",
+			Value: "",
+		},
+		cli.BoolFlag{
+			Name:  "skip-verify",
+			Usage: "skip TLS verification",
+		},
 	}
 	app.Before = func(c *cli.Context) error {
 		if c.Bool("debug") {

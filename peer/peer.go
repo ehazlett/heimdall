@@ -22,12 +22,16 @@
 package peer
 
 import (
+	"context"
+	"fmt"
 	"path/filepath"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stellarproject/heimdall"
 	"github.com/stellarproject/heimdall/client"
+	"github.com/stellarproject/heimdall/version"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -50,9 +54,12 @@ func NewPeer(cfg *heimdall.PeerConfig) (*Peer, error) {
 func (p *Peer) Run() error {
 	// initial sync
 	logrus.Infof("connecting to peer %s", p.cfg.Address)
-	if err := p.sync(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), p.cfg.UpdateInterval)
+	if err := p.sync(ctx); err != nil {
+		cancel()
 		return err
 	}
+	cancel()
 
 	doneCh := make(chan bool)
 	errCh := make(chan error)
@@ -60,10 +67,13 @@ func (p *Peer) Run() error {
 	t := time.NewTicker(p.cfg.UpdateInterval)
 	go func() {
 		for range t.C {
-			if err := p.sync(); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), p.cfg.UpdateInterval)
+			if err := p.sync(ctx); err != nil {
 				errCh <- err
+				cancel()
 				return
 			}
+			cancel()
 		}
 	}()
 	select {
@@ -89,5 +99,20 @@ func (p *Peer) getTunnelName() string {
 }
 
 func (p *Peer) getClient(addr string) (*client.Client, error) {
-	return client.NewClient(p.cfg.ID, addr)
+	cfg := &heimdall.Config{
+		TLSClientCertificate:  p.cfg.TLSClientCertificate,
+		TLSClientKey:          p.cfg.TLSClientKey,
+		TLSInsecureSkipVerify: p.cfg.TLSInsecureSkipVerify,
+	}
+
+	opts, err := client.DialOptionsFromConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts,
+		grpc.WithBlock(),
+		grpc.WithUserAgent(fmt.Sprintf("%s/%s", version.Name, version.Version)),
+	)
+
+	return client.NewClient(p.cfg.ID, addr, opts...)
 }

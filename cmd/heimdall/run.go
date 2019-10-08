@@ -41,17 +41,22 @@ import (
 
 func runServer(cx *cli.Context) error {
 	cfg := &heimdall.Config{
-		ID:                   cx.String("id"),
-		GRPCAddress:          cx.String("addr"),
-		AdvertiseGRPCAddress: cx.String("advertise-grpc-address"),
-		GRPCPeerAddress:      cx.String("peer"),
-		ClusterKey:           cx.String("cluster-key"),
-		NodeNetwork:          cx.String("node-network"),
-		PeerNetwork:          cx.String("peer-network"),
-		EndpointIP:           cx.String("endpoint-ip"),
-		EndpointPort:         cx.Int("endpoint-port"),
-		InterfaceName:        cx.String("interface-name"),
-		RedisURL:             cx.String("redis-url"),
+		ID:                    cx.String("id"),
+		GRPCAddress:           cx.String("addr"),
+		AdvertiseGRPCAddress:  cx.String("advertise-grpc-address"),
+		GRPCPeerAddress:       cx.String("peer"),
+		ClusterKey:            cx.String("cluster-key"),
+		NodeNetwork:           cx.String("node-network"),
+		PeerNetwork:           cx.String("peer-network"),
+		EndpointIP:            cx.String("endpoint-ip"),
+		EndpointPort:          cx.Int("endpoint-port"),
+		InterfaceName:         cx.String("interface-name"),
+		RedisURL:              cx.String("redis-url"),
+		TLSServerCertificate:  cx.String("cert"),
+		TLSServerKey:          cx.String("key"),
+		TLSClientCertificate:  cx.String("client-cert"),
+		TLSClientKey:          cx.String("client-key"),
+		TLSInsecureSkipVerify: cx.Bool("skip-verify"),
 	}
 
 	errCh := make(chan error, 1)

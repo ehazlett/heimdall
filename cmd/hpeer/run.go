@@ -35,10 +35,13 @@ import (
 
 func run(cx *cli.Context) error {
 	cfg := &heimdall.PeerConfig{
-		ID:             cx.String("id"),
-		Address:        cx.String("addr"),
-		UpdateInterval: cx.Duration("update-interval"),
-		InterfaceName:  cx.String("interface-name"),
+		ID:                    cx.String("id"),
+		Address:               cx.String("addr"),
+		UpdateInterval:        cx.Duration("update-interval"),
+		InterfaceName:         cx.String("interface-name"),
+		TLSClientCertificate:  cx.String("cert"),
+		TLSClientKey:          cx.String("key"),
+		TLSInsecureSkipVerify: cx.Bool("skip-verify"),
 	}
 	p, err := peer.NewPeer(cfg)
 	if err != nil {

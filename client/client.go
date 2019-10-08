@@ -102,10 +102,10 @@ func (c *Client) Close() error {
 func DialOptionsFromConfig(cfg *heimdall.Config) ([]grpc.DialOption, error) {
 	opts := []grpc.DialOption{}
 	if cfg.TLSClientCertificate != "" {
-		logrus.WithField("cert", cfg.TLSClientCertificate)
+		logrus.WithField("cert", cfg.TLSClientCertificate).Debug("configuring TLS cert")
 		var creds credentials.TransportCredentials
 		if cfg.TLSClientKey != "" {
-			logrus.WithField("key", cfg.TLSClientKey)
+			logrus.WithField("key", cfg.TLSClientKey).Debug("configuring TLS key")
 			cert, err := tls.LoadX509KeyPair(cfg.TLSClientCertificate, cfg.TLSClientKey)
 			if err != nil {
 				return nil, err

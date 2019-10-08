@@ -69,4 +69,10 @@ type PeerConfig struct {
 	UpdateInterval time.Duration
 	// InterfaceName is the interface used for peer communication
 	InterfaceName string
+	// TLSClientCertificate is the client certificate used for communication
+	TLSClientCertificate string
+	// TLSClientKey is the client key used for communication
+	TLSClientKey string
+	// TLSInsecureSkipVerify disables certificate verification
+	TLSInsecureSkipVerify bool
 }

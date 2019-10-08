@@ -44,6 +44,7 @@ import (
 	"github.com/stellarproject/heimdall"
 	v1 "github.com/stellarproject/heimdall/api/v1"
 	"github.com/stellarproject/heimdall/client"
+	"github.com/stellarproject/heimdall/version"
 	"github.com/stellarproject/heimdall/wg"
 	"google.golang.org/grpc"
 )
@@ -442,7 +443,22 @@ func (s *Server) getNodeNetworkKey(id string) string {
 }
 
 func (s *Server) getClient(addr string) (*client.Client, error) {
-	return client.NewClient(s.cfg.ID, addr)
+	cfg := &heimdall.Config{
+		TLSClientCertificate:  s.cfg.TLSClientCertificate,
+		TLSClientKey:          s.cfg.TLSClientKey,
+		TLSInsecureSkipVerify: s.cfg.TLSInsecureSkipVerify,
+	}
+
+	opts, err := client.DialOptionsFromConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts,
+		grpc.WithBlock(),
+		grpc.WithUserAgent(fmt.Sprintf("%s/%s", version.Name, version.Version)),
+	)
+
+	return client.NewClient(s.cfg.ID, addr, opts...)
 }
 
 func (s *Server) getClusterKey(ctx context.Context) (string, error) {
