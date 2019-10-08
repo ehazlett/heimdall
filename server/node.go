@@ -301,7 +301,10 @@ func (s *Server) updateMasterInfo(ctx context.Context) error {
 	// build redis url with gateway ip
 	gatewayIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
 	if err != nil {
-		logrus.Error("updateMasterInfo.getNodeIP")
+		if err == redis.ErrNil {
+			logrus.Warnf("node does not have an IP assigned yet")
+			return nil
+		}
 		return err
 	}
 	u, err := url.Parse(s.cfg.RedisURL)

@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -73,7 +72,7 @@ func (s *Server) getOrAllocatePeerIP(ctx context.Context, id string) (net.IP, *n
 func (s *Server) getNodeIP(ctx context.Context, id string) (net.IP, *net.IPNet, error) {
 	subnet, err := redis.String(s.local(ctx, "GET", s.getNodeNetworkKey(id)))
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "error getting node ip")
+		return nil, nil, err
 	}
 	r, err := parseSubnetRange(subnet)
 	if err != nil {

@@ -22,6 +22,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -32,6 +33,9 @@ import (
 )
 
 func main() {
+	cli.VersionPrinter = func(c *cli.Context) {
+		fmt.Printf("%v version=%s id=%s\n", c.App.Name, c.App.Version, heimdall.NodeID())
+	}
 	app := cli.NewApp()
 	app.Name = "hpeer"
 	app.Version = version.BuildVersion()

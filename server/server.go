@@ -142,7 +142,7 @@ func (s *Server) Run() error {
 			return err
 		}
 
-		logrus.Debugf("master info received: %+v", r)
+		logrus.Debugf("master info received: id=%s grpc=%s", r.Master.ID, r.Master.GRPCAddress)
 		// start tunnel
 		if err := s.updatePeerConfig(ctx, r.Node, r.Peers); err != nil {
 			return errors.Wrap(err, "error updating peer config")
@@ -354,7 +354,6 @@ func (s *Server) ensureNetworkSubnet(ctx context.Context, id string) error {
 		if err != nil {
 			return err
 		}
-		logrus.Debugf("node networks: %s", nodeNetworkKeys)
 		lookup := map[string]struct{}{}
 		for _, netKey := range nodeNetworkKeys {
 			n, err := redis.String(s.local(ctx, "GET", netKey))
@@ -363,8 +362,6 @@ func (s *Server) ensureNetworkSubnet(ctx context.Context, id string) error {
 			}
 			lookup[n] = struct{}{}
 		}
-
-		logrus.Debugf("lookup: %+v", lookup)
 
 		subnet := r.Subnet
 		size, _ := subnet.Mask.Size()
