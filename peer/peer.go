@@ -40,7 +40,8 @@ const (
 
 // Peer is the non-node peer
 type Peer struct {
-	cfg *heimdall.PeerConfig
+	cfg            *heimdall.PeerConfig
+	currentVersion string
 }
 
 // NewPeer returns a new peer

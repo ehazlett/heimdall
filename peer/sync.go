@@ -72,15 +72,11 @@ func (p *Peer) sync(ctx context.Context) error {
 		return err
 	}
 
-	e, err := heimdall.HashConfig(wireguardConfigPath)
-	if err != nil {
-		return err
-	}
-
 	// if config has not change skip update
-	if h == e {
+	if h == p.currentVersion {
 		return nil
 	}
+	p.currentVersion = h
 
 	logrus.Debugf("updating peer config to version %s", h)
 	// update wireguard config
