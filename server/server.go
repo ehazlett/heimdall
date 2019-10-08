@@ -22,14 +22,20 @@
 package server
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"time"
 
+	ping "github.com/digineo/go-ping"
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
@@ -81,7 +87,10 @@ type Server struct {
 
 // NewServer returns a new Heimdall server
 func NewServer(cfg *heimdall.Config) (*Server, error) {
-	pool := getPool(cfg.RedisURL)
+	pool, err := getPool(cfg.RedisURL)
+	if err != nil {
+		return nil, err
+	}
 	return &Server{
 		cfg:       cfg,
 		rpool:     pool,
@@ -121,13 +130,37 @@ func (s *Server) Run() error {
 		}
 		defer c.Close()
 
-		master, err := c.Join(s.cfg.ClusterKey)
+		r, err := c.Join(&v1.JoinRequest{
+			ID:            s.cfg.ID,
+			ClusterKey:    s.cfg.ClusterKey,
+			GRPCAddress:   s.cfg.GRPCAddress,
+			EndpointIP:    s.cfg.EndpointIP,
+			EndpointPort:  uint64(s.cfg.EndpointPort),
+			InterfaceName: s.cfg.InterfaceName,
+		})
 		if err != nil {
 			return err
 		}
 
-		logrus.Debugf("master info received: %+v", master)
-		if err := s.joinMaster(master); err != nil {
+		logrus.Debugf("master info received: %+v", r)
+		// start tunnel
+		if err := s.updatePeerConfig(ctx, r.Node, r.Peers); err != nil {
+			return errors.Wrap(err, "error updating peer config")
+		}
+
+		// wait for tunnel to come up
+		logrus.Infof("waiting for master %s", r.Master.ID)
+		if err := s.waitForMaster(ctx, r.Master); err != nil {
+			return errors.Wrap(err, "error waiting for master")
+		}
+
+		logrus.Debugf("joining master: %s", r.Master.ID)
+		if err := s.joinMaster(r.Master); err != nil {
+			return err
+		}
+
+		logrus.Infof("waiting for redis sync with %s", r.Master.ID)
+		if err := s.waitForRedisSync(ctx); err != nil {
 			return err
 		}
 
@@ -144,12 +177,17 @@ func (s *Server) Run() error {
 	}
 
 	// ensure node network subnet
-	if err := s.ensureNetworkSubnet(ctx); err != nil {
+	if err := s.ensureNetworkSubnet(ctx, s.cfg.ID); err != nil {
+		return err
+	}
+
+	// initial node update
+	if err := s.updateLocalNodeInfo(ctx); err != nil {
 		return err
 	}
 
 	// start node heartbeat to update in redis
-	go s.nodeHeartbeat(ctx)
+	go s.updateNodeInfo(ctx)
 
 	// initial peer info update
 	if err := s.updatePeerInfo(ctx, s.cfg.ID); err != nil {
@@ -157,7 +195,15 @@ func (s *Server) Run() error {
 	}
 
 	// initial config update
-	if err := s.updatePeerConfig(ctx); err != nil {
+	node, err := s.getNode(ctx, s.cfg.ID)
+	if err != nil {
+		return err
+	}
+	peers, err := s.getPeers(ctx)
+	if err != nil {
+		return err
+	}
+	if err := s.updatePeerConfig(ctx, node, peers); err != nil {
 		return err
 	}
 
@@ -184,7 +230,7 @@ func (s *Server) Run() error {
 		}
 	}()
 
-	err := <-errCh
+	err = <-errCh
 	return err
 }
 
@@ -194,20 +240,106 @@ func (s *Server) Stop() error {
 	return nil
 }
 
-func getPool(u string) *redis.Pool {
+func getPool(redisUrl string) (*redis.Pool, error) {
 	pool := redis.NewPool(func() (redis.Conn, error) {
-		conn, err := redis.DialURL(u)
+		conn, err := redis.DialURL(redisUrl)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to connect to redis")
+		}
+
+		u, err := url.Parse(redisUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		auth, ok := u.User.Password()
+		if ok {
+			if _, err := conn.Do("CONFIG", "SET", "MASTERAUTH", auth); err != nil {
+				return nil, errors.Wrap(err, "error authenticating to redis")
+			}
 		}
 		return conn, nil
 	}, 10)
 
-	return pool
+	return pool, nil
 }
 
-func (s *Server) ensureNetworkSubnet(ctx context.Context) error {
-	network, err := redis.String(s.local(ctx, "GET", s.getNodeNetworkKey(s.cfg.ID)))
+func (s *Server) waitForMaster(ctx context.Context, m *v1.Master) error {
+	p, err := ping.New("0.0.0.0", "")
+	if err != nil {
+		return err
+	}
+	defer p.Close()
+
+	doneCh := make(chan time.Duration)
+	errCh := make(chan error)
+
+	go func() {
+		for {
+			ip, err := net.ResolveIPAddr("ip4", m.GatewayIP)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			rtt, err := p.Ping(ip, time.Second*30)
+			if err != nil {
+				errCh <- err
+			}
+			doneCh <- rtt
+		}
+	}()
+
+	select {
+	case rtt := <-doneCh:
+		logrus.Debugf("rtt master ping: %s", rtt)
+		return nil
+	case err := <-errCh:
+		return err
+	}
+	return nil
+}
+
+func (s *Server) waitForRedisSync(ctx context.Context) error {
+	doneCh := make(chan bool)
+	errCh := make(chan error)
+
+	go func() {
+		for {
+			info, err := redis.String(s.local(ctx, "INFO", "REPLICATION"))
+			if err != nil {
+				logrus.Warn(err)
+				continue
+			}
+
+			b := bytes.NewBufferString(info)
+			s := bufio.NewScanner(b)
+
+			for s.Scan() {
+				v := s.Text()
+				parts := strings.SplitN(v, ":", 2)
+				if parts[0] == "master_link_status" {
+					if parts[1] == "up" {
+						doneCh <- true
+						return
+					}
+				}
+			}
+			time.Sleep(time.Second * 1)
+		}
+	}()
+
+	select {
+	case <-doneCh:
+		return nil
+	case err := <-errCh:
+		return err
+	case <-time.After(nodeHeartbeatInterval):
+		return fmt.Errorf("timeout waiting on sync")
+	}
+}
+
+func (s *Server) ensureNetworkSubnet(ctx context.Context, id string) error {
+	network, err := redis.String(s.local(ctx, "GET", s.getNodeNetworkKey(id)))
 	if err != nil {
 		if err != redis.ErrNil {
 			return err
@@ -222,7 +354,7 @@ func (s *Server) ensureNetworkSubnet(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		logrus.Debug(nodeNetworkKeys)
+		logrus.Debugf("node networks: %s", nodeNetworkKeys)
 		lookup := map[string]struct{}{}
 		for _, netKey := range nodeNetworkKeys {
 			n, err := redis.String(s.local(ctx, "GET", netKey))
@@ -231,6 +363,8 @@ func (s *Server) ensureNetworkSubnet(ctx context.Context) error {
 			}
 			lookup[n] = struct{}{}
 		}
+
+		logrus.Debugf("lookup: %+v", lookup)
 
 		subnet := r.Subnet
 		size, _ := subnet.Mask.Size()
@@ -244,8 +378,8 @@ func (s *Server) ensureNetworkSubnet(ctx context.Context) error {
 				subnet = n
 				continue
 			}
-			logrus.Debugf("allocated network %s for %s", n.String(), s.cfg.ID)
-			if err := s.updateNodeNetwork(ctx, n.String()); err != nil {
+			logrus.Debugf("allocated network %s for %s", n.String(), id)
+			if err := s.updateNodeNetwork(ctx, id, n.String()); err != nil {
 				return err
 			}
 			break
@@ -253,7 +387,7 @@ func (s *Server) ensureNetworkSubnet(ctx context.Context) error {
 
 		return nil
 	}
-	logrus.Debugf("node network: %s", network)
+	logrus.Debugf("node network for %s: %s", id, network)
 	return nil
 }
 

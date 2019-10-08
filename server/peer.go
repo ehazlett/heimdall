@@ -69,9 +69,7 @@ func (s *Server) getPeers(ctx context.Context) ([]*v1.Peer, error) {
 
 func (s *Server) peerUpdater(ctx context.Context) {
 	logrus.Debugf("starting peer config updater: ttl=%s", peerConfigUpdateInterval)
-
 	t := time.NewTicker(peerConfigUpdateInterval)
-
 	for range t.C {
 		uctx, cancel := context.WithTimeout(ctx, peerConfigUpdateInterval)
 		if err := s.updatePeerInfo(uctx, s.cfg.ID); err != nil {
@@ -80,7 +78,21 @@ func (s *Server) peerUpdater(ctx context.Context) {
 			continue
 		}
 
-		if err := s.updatePeerConfig(uctx); err != nil {
+		peers, err := s.getPeers(ctx)
+		if err != nil {
+			logrus.Error(err)
+			cancel()
+			continue
+		}
+
+		node, err := s.getNode(ctx, s.cfg.ID)
+		if err != nil {
+			logrus.Error(err)
+			cancel()
+			continue
+		}
+
+		if err := s.updatePeerConfig(uctx, node, peers); err != nil {
 			logrus.Errorf("updatePeerConfig: %s", err)
 			cancel()
 			continue
@@ -208,47 +220,24 @@ func (s *Server) getPeerInfo(ctx context.Context, id string) (*v1.Peer, error) {
 	return &peer, nil
 }
 
-func (s *Server) updatePeerConfig(ctx context.Context) error {
-	peerKeys, err := redis.Strings(s.local(ctx, "KEYS", s.getPeerKey("*")))
-	if err != nil {
-		return err
-	}
-	var peers []*v1.Peer
-	for _, peerKey := range peerKeys {
-		peerData, err := redis.Bytes(s.local(ctx, "GET", peerKey))
-		if err != nil {
-			return err
-		}
-		var p v1.Peer
-		if err := proto.Unmarshal(peerData, &p); err != nil {
-			return err
-		}
-
+func (s *Server) updatePeerConfig(ctx context.Context, node *v1.Node, peers []*v1.Peer) error {
+	var nodePeers []*v1.Peer
+	for _, peer := range peers {
 		// do not add self as a peer
-		if p.ID == s.cfg.ID {
+		if peer.ID == node.ID {
 			continue
 		}
 
-		peers = append(peers, &p)
+		nodePeers = append(nodePeers, peer)
 	}
 
-	keyPair, err := s.getOrCreateKeyPair(ctx, s.cfg.ID)
-	if err != nil {
-		return err
-	}
-
-	gatewayIP, gatewayNet, err := s.getNodeIP(ctx, s.cfg.ID)
-	if err != nil {
-		return err
-	}
-
-	size, _ := gatewayNet.Mask.Size()
+	//size, _ := gatewayNet.Mask.Size()
 	wireguardCfg := &wg.Config{
-		Iface:      s.cfg.InterfaceName,
-		PrivateKey: keyPair.PrivateKey,
-		ListenPort: s.cfg.EndpointPort,
-		Address:    fmt.Sprintf("%s/%d", gatewayIP.To4().String(), size),
-		Peers:      peers,
+		Iface:      node.InterfaceName,
+		PrivateKey: node.KeyPair.PrivateKey,
+		ListenPort: int(node.EndpointPort),
+		Address:    fmt.Sprintf("%s/%d", node.GatewayIP, 16),
+		Peers:      nodePeers,
 	}
 
 	wireguardConfigPath := s.getWireguardConfigPath()

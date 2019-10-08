@@ -60,7 +60,35 @@ func (s *Server) Join(ctx context.Context, req *v1.JoinRequest) (*v1.JoinRespons
 		return nil, err
 	}
 
+	peers, err := s.getPeers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.ensureNetworkSubnet(ctx, req.ID); err != nil {
+		return nil, err
+	}
+
+	node, err := s.getNode(ctx, req.ID)
+	if err != nil {
+		if err != redis.ErrNil {
+			return nil, err
+		}
+		n, err := s.createNode(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := s.updatePeerInfo(ctx, req.ID); err != nil {
+			return nil, err
+		}
+
+		node = n
+	}
+
 	return &v1.JoinResponse{
 		Master: &master,
+		Node:   node,
+		Peers:  peers,
 	}, nil
 }
