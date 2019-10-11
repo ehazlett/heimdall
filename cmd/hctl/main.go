@@ -52,18 +52,21 @@ func main() {
 			EnvVar: "HEIMDALL_ADDR",
 		},
 		cli.StringFlag{
-			Name:  "cert, c",
-			Usage: "heimdall client certificate",
-			Value: "",
+			Name:   "cert, c",
+			Usage:  "heimdall client certificate",
+			Value:  "",
+			EnvVar: "HEIMDALL_CLIENT_CERT",
 		},
 		cli.StringFlag{
-			Name:  "key, k",
-			Usage: "heimdall client key",
-			Value: "",
+			Name:   "key, k",
+			Usage:  "heimdall client key",
+			Value:  "",
+			EnvVar: "HEIMDALL_CLIENT_KEY",
 		},
 		cli.BoolFlag{
-			Name:  "skip-verify",
-			Usage: "skip TLS verification",
+			Name:   "skip-verify",
+			Usage:  "skip TLS verification",
+			EnvVar: "HEIMDALL_SKIP_VERIFY",
 		},
 	}
 	app.Before = func(c *cli.Context) error {
