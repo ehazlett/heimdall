@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -27,6 +27,10 @@ import "time"
 type Config struct {
 	// ID is the id of the node
 	ID string
+	// RedisPort is the port to use for the managed Redis
+	RedisPort int
+	// DataDir is the directory for local node configuration
+	DataDir string
 	// GRPCAddress is the address for the grpc server
 	GRPCAddress string
 	// AdvertiseGRPCAddress is the public address for the grpc server
@@ -45,8 +49,6 @@ type Config struct {
 	EndpointPort int
 	// InterfaceName is the interface used for peer communication
 	InterfaceName string
-	// RedisURL is the uri to the redis backend
-	RedisURL string
 	// TLSCertificate is the certificate used for grpc communication
 	TLSServerCertificate string
 	// TLSKey is the key used for grpc communication

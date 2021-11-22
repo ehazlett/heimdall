@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -26,41 +26,46 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/url"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"time"
 
 	ping "github.com/digineo/go-ping"
+	"github.com/ehazlett/heimdall"
+	v1 "github.com/ehazlett/heimdall/api/v1"
+	"github.com/ehazlett/heimdall/client"
+	"github.com/ehazlett/heimdall/version"
+	"github.com/ehazlett/heimdall/wg"
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/heimdall"
-	v1 "github.com/stellarproject/heimdall/api/v1"
-	"github.com/stellarproject/heimdall/client"
-	"github.com/stellarproject/heimdall/version"
-	"github.com/stellarproject/heimdall/wg"
 	"google.golang.org/grpc"
 )
 
 const (
-	masterKey          = "heimdall:master"
-	clusterKey         = "heimdall:key"
-	keypairsKey        = "heimdall:keypairs"
-	nodesKey           = "heimdall:nodes"
-	nodeJoinKey        = "heimdall:join"
-	peersKey           = "heimdall:peers"
-	routesKey          = "heimdall:routes"
-	peerIPsKey         = "heimdall:peerips"
-	nodeIPsKey         = "heimdall:nodeips"
-	nodeNetworksKey    = "heimdall:nodenetworks"
-	authorizedPeersKey = "heimdall:authorized"
+	masterKey                 = "heimdall:master"
+	clusterKey                = "heimdall:key"
+	keypairsKey               = "heimdall:keypairs"
+	nodesKey                  = "heimdall:nodes"
+	peersKey                  = "heimdall:peers"
+	routesKey                 = "heimdall:routes"
+	peerIPsKey                = "heimdall:peerips"
+	nodeIPsKey                = "heimdall:nodeips"
+	nodeNetworksKey           = "heimdall:nodenetworks"
+	authorizedPeersKey        = "heimdall:authorized"
+	nodeEventJoinKey          = "heimdall:join"
+	nodeEventRestartTunnelKey = "heimdall:restarttunnel"
 
 	wireguardConfigDir = "/etc/wireguard"
 )
@@ -80,23 +85,49 @@ var (
 
 // Server represents the Heimdall server
 type Server struct {
-	cfg       *heimdall.Config
-	rpool     *redis.Pool
-	wpool     *redis.Pool
-	replicaCh chan struct{}
+	cfg               *heimdall.Config
+	nodeInterface     string
+	redisCmd          *exec.Cmd
+	redisURL          string
+	rpool             *redis.Pool
+	wpool             *redis.Pool
+	replicaCh         chan struct{}
+	currentConfigHash string
 }
 
 // NewServer returns a new Heimdall server
 func NewServer(cfg *heimdall.Config) (*Server, error) {
-	pool, err := getPool(cfg.RedisURL)
+	if err := os.MkdirAll(cfg.DataDir, 0750); err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	// start embedded managed redis server
+	logrus.Debugf("starting redis on %d", cfg.RedisPort)
+	redisCmd, err := startRedis(ctx, &redisConfig{
+		DataDir:    cfg.DataDir,
+		ListenAddr: "127.0.0.1",
+		Port:       cfg.RedisPort,
+	})
+	if err != nil {
+		return nil, err
+	}
+	redisURL := fmt.Sprintf("redis://127.0.0.1:%d", cfg.RedisPort)
+	pool, err := getPool(redisURL)
+	if err != nil {
+		return nil, err
+	}
+	nodeInterface, err := getNodeInterfaceName(cfg.EndpointIP)
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
-		cfg:       cfg,
-		rpool:     pool,
-		wpool:     pool,
-		replicaCh: make(chan struct{}, 1),
+		cfg:           cfg,
+		redisCmd:      redisCmd,
+		redisURL:      redisURL,
+		rpool:         pool,
+		wpool:         pool,
+		replicaCh:     make(chan struct{}, 1),
+		nodeInterface: nodeInterface,
 	}, nil
 }
 
@@ -123,6 +154,7 @@ func (s *Server) GenerateProfile() (string, error) {
 func (s *Server) Run() error {
 	ctx := context.Background()
 	// check peer address and make a grpc request for master info if present
+	masterRedisURL := ""
 	if s.cfg.GRPCPeerAddress != "" {
 		logrus.Debugf("joining %s", s.cfg.GRPCPeerAddress)
 		c, err := s.getClient(s.cfg.GRPCPeerAddress)
@@ -165,6 +197,8 @@ func (s *Server) Run() error {
 			return err
 		}
 
+		masterRedisURL = r.Master.RedisURL
+
 		go s.replicaMonitor()
 	} else {
 		if err := s.configureNode(); err != nil {
@@ -179,6 +213,19 @@ func (s *Server) Run() error {
 
 	// ensure node network subnet
 	if err := s.ensureNetworkSubnet(ctx, s.cfg.ID); err != nil {
+		return err
+	}
+
+	// reconfigure redis to listen on gateway ip
+	nodeIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
+	if err != nil {
+		return err
+	}
+	// if no master was joined, configure local redis as master
+	if masterRedisURL == "" {
+		masterRedisURL = fmt.Sprintf("redis://%s:%d", nodeIP.String(), s.cfg.RedisPort)
+	}
+	if err := s.reconfigureRedis(ctx, nodeIP.String(), masterRedisURL); err != nil {
 		return err
 	}
 
@@ -200,6 +247,7 @@ func (s *Server) Run() error {
 	if err != nil {
 		return err
 	}
+
 	peers, err := s.getPeers(ctx)
 	if err != nil {
 		return err
@@ -218,12 +266,14 @@ func (s *Server) Run() error {
 		defer c.Close()
 
 		psc := redis.PubSubConn{Conn: c}
-		psc.Subscribe(nodeJoinKey)
+		psc.Subscribe(nodeEventJoinKey)
+		psc.Subscribe(nodeEventRestartTunnelKey)
 		for {
 			switch v := psc.Receive().(type) {
 			case redis.Message:
-				// TODO: handle join notify
-				logrus.Debug("join notify")
+				if err := s.eventHandler(ctx, v); err != nil {
+					logrus.WithError(err).Error("error handling event")
+				}
 			case redis.Subscription:
 			default:
 				logrus.Debugf("unknown message type %T", v)
@@ -236,19 +286,24 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) Stop() error {
-	s.rpool.Close()
-	s.wpool.Close()
+	if s.redisCmd != nil {
+		if _, err := s.local(context.Background(), "SHUTDOWN"); err != nil {
+			if err != io.EOF {
+				logrus.WithError(err).Error("error shutting down redis")
+			}
+		}
+	}
 	return nil
 }
 
-func getPool(redisUrl string) (*redis.Pool, error) {
+func getPool(redisURL string) (*redis.Pool, error) {
 	pool := redis.NewPool(func() (redis.Conn, error) {
-		conn, err := redis.DialURL(redisUrl)
+		conn, err := redis.DialURL(redisURL)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to connect to redis")
 		}
 
-		u, err := url.Parse(redisUrl)
+		u, err := url.Parse(redisURL)
 		if err != nil {
 			return nil, err
 		}
@@ -334,7 +389,7 @@ func (s *Server) waitForRedisSync(ctx context.Context) error {
 		return nil
 	case err := <-errCh:
 		return err
-	case <-time.After(nodeHeartbeatInterval):
+	case <-time.After(nodeHeartbeatInterval * 2):
 		return fmt.Errorf("timeout waiting on sync")
 	}
 }
@@ -489,4 +544,103 @@ func (s *Server) do(ctx context.Context, pool *redis.Pool, cmd string, args ...i
 	defer conn.Close()
 	r, err := conn.Do(cmd, args...)
 	return r, err
+}
+
+func (s *Server) reconfigureRedis(ctx context.Context, localIP string, masterRedisURL string) error {
+	logrus.Debugf("reconfiguring local redis: local=%s master=%s", localIP, masterRedisURL)
+	// TODO: mutex lock for server
+	if s.redisCmd != nil {
+		logrus.Debug("shutting down existing redis...")
+		pool, err := getPool(s.redisURL)
+		if err != nil {
+			return err
+		}
+		conn, err := pool.GetContext(ctx)
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+
+		if _, err := conn.Do("SHUTDOWN"); err != nil {
+			if err != io.EOF {
+				return err
+			}
+		}
+		//if err := s.redisCmd.Process.Kill(); err != nil {
+		//	logrus.WithError(err).Warn("error stopping redis")
+		//}
+		time.Sleep(time.Second * 1)
+	}
+	// configure replica
+	u, err := url.Parse(masterRedisURL)
+	if err != nil {
+		return err
+	}
+	hostIP, port, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return err
+	}
+	redisPort, err := strconv.Atoi(port)
+	if err != nil {
+		return err
+	}
+	var replicaOf *redisReplica
+	if hostIP != localIP {
+		replicaOf = &redisReplica{
+			Host: hostIP,
+			Port: redisPort,
+		}
+	}
+
+	redisCmd, err := startRedis(ctx, &redisConfig{
+		ListenAddr: localIP,
+		Port:       s.cfg.RedisPort,
+		DataDir:    s.cfg.DataDir,
+		ReplicaOf:  replicaOf,
+	})
+	if err != nil {
+		return errors.Wrap(err, "error starting redis on private IP")
+	}
+	s.redisCmd = redisCmd
+
+	localRedisURL := fmt.Sprintf("redis://%s:%d", localIP, s.cfg.RedisPort)
+	pool, err := getPool(localRedisURL)
+	if err != nil {
+		return err
+	}
+	s.rpool = pool
+
+	wpool, err := getPool(masterRedisURL)
+	if err != nil {
+		return err
+	}
+	s.wpool = wpool
+
+	return nil
+}
+
+func getNodeInterfaceName(endpointIP string) (string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return "", err
+		}
+
+		for _, addr := range addrs {
+			ip, _, err := net.ParseCIDR(addr.String())
+			if err != nil {
+				logrus.WithError(err).Warn("error parsing iface address CIDR")
+				continue
+			}
+			if ip.String() == endpointIP {
+				return iface.Name, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("unable to determine interface name for endpoint IP %s", endpointIP)
 }

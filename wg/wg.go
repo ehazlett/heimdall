@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -32,9 +32,9 @@ import (
 	"strings"
 	"text/template"
 
+	v1 "github.com/ehazlett/heimdall/api/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
 const (
@@ -43,8 +43,8 @@ const (
 PrivateKey = {{ .PrivateKey }}
 ListenPort = {{ .ListenPort }}
 Address = {{ .Address }}
-PostUp = iptables -A FORWARD -i {{ .Iface }} -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i {{ .Iface }} -j ACCEPT; ip6tables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-PostDown = iptables -D FORWARD -i {{ .Iface }} -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i {{ .Iface }} -j ACCEPT; ip6tables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+PostUp = iptables -A FORWARD -i {{ .Interface }} -j ACCEPT; iptables -t nat -A POSTROUTING -o {{ .NodeInterface }} -j MASQUERADE; ip6tables -A FORWARD -i {{ .Interface }} -j ACCEPT; ip6tables -t nat -A POSTROUTING -o {{ .NodeInterface }} -j MASQUERADE
+PostDown = iptables -D FORWARD -i {{ .Interface }} -j ACCEPT; iptables -t nat -D POSTROUTING -o {{ .NodeInterface }} -j MASQUERADE; ip6tables -D FORWARD -i {{ .Interface }} -j ACCEPT; ip6tables -t nat -D POSTROUTING -o {{ .NodeInterface }} -j MASQUERADE
 {{ range .Peers }}
 # {{ .ID }}
 [Peer]
@@ -74,12 +74,13 @@ func csvList(s []string) string {
 
 // Config is the Wireguard configuration
 type Config struct {
-	Iface      string
-	PrivateKey string
-	ListenPort int
-	Address    string
-	Peers      []*v1.Peer
-	DNS        []string
+	Interface     string
+	NodeInterface string
+	PrivateKey    string
+	ListenPort    int
+	Address       string
+	Peers         []*v1.Peer
+	DNS           []string
 }
 
 // GenerateNodeConfig generates the configuration for a node (server)

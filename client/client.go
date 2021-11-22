@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -28,8 +28,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/stellarproject/heimdall"
-	v1 "github.com/stellarproject/heimdall/api/v1"
+	"github.com/ehazlett/heimdall"
+	v1 "github.com/ehazlett/heimdall/api/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

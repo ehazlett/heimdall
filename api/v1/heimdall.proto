@@ -1,12 +1,15 @@
 syntax = "proto3";
 
-package io.stellarproject.heimdall.api.v1;
+package dev.ehazlett.heimdall.api.v1;
 
 import "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/stellarproject/heimdall/api/v1;v1";
+option go_package = "github.com/ehazlett/heimdall/api/v1;v1";
+option (gogoproto.sizer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
 
 service Heimdall {
         rpc Connect(ConnectRequest) returns (ConnectResponse);

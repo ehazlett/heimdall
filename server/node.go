@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -29,11 +29,11 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/ehazlett/heimdall/api/v1"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
 // Nodes returns a list of known nodes
@@ -131,6 +131,11 @@ func (s *Server) configureNode() error {
 				continue
 			}
 
+			// reconfigure local redis on private IP
+			if err := s.reconfigureRedis(ctx, r.Node.GatewayIP, r.Master.RedisURL); err != nil {
+				return err
+			}
+
 			logrus.Infof("waiting for redis sync with %s", r.Master.ID)
 			if err := s.waitForRedisSync(ctx); err != nil {
 				return err
@@ -142,6 +147,7 @@ func (s *Server) configureNode() error {
 		}
 	}
 
+	// no peer passed; start as master
 	data, err := redis.Bytes(s.local(context.Background(), "GET", masterKey))
 	if err != nil {
 		if err != redis.ErrNil {
@@ -163,14 +169,21 @@ func (s *Server) configureNode() error {
 		return nil
 	}
 
+	logrus.Debug("cluster master found; joining existing")
+
+	// join existing master
 	var master v1.Master
 	if err := proto.Unmarshal(data, &master); err != nil {
 		return err
 	}
 
-	// TODO: start tunnel
+	logrus.Debug("joining cluster master %+v", master)
 
 	if err := s.joinMaster(&master); err != nil {
+		return err
+	}
+	// reconfigure local redis on private IP
+	if err := s.reconfigureRedis(ctx, master.GatewayIP, master.RedisURL); err != nil {
 		return err
 	}
 
@@ -180,7 +193,7 @@ func (s *Server) configureNode() error {
 }
 
 func (s *Server) disableReplica() error {
-	p, err := getPool(s.cfg.RedisURL)
+	p, err := getPool(s.redisURL)
 	if err != nil {
 		return err
 	}
@@ -265,7 +278,7 @@ func (s *Server) masterHeartbeat() {
 func (s *Server) joinMaster(m *v1.Master) error {
 	// configure replica
 	logrus.Infof("configuring node as replica of %+v", m.ID)
-	pool, err := getPool(s.cfg.RedisURL)
+	pool, err := getPool(s.redisURL)
 	if err != nil {
 		return err
 	}
@@ -273,7 +286,7 @@ func (s *Server) joinMaster(m *v1.Master) error {
 	conn := pool.Get()
 	defer conn.Close()
 
-	logrus.Debugf("configuring redis as slave of %s", m.ID)
+	logrus.Debugf("configuring redis as replica of %s", m.ID)
 	u, err := url.Parse(m.RedisURL)
 	if err != nil {
 		return errors.Wrap(err, "error parsing master redis url")
@@ -281,10 +294,12 @@ func (s *Server) joinMaster(m *v1.Master) error {
 	hostPort := strings.SplitN(u.Host, ":", 2)
 	host := hostPort[0]
 	port := hostPort[1]
+	logrus.Debugf("setting replica to %s:%s", host, port)
 	if _, err := conn.Do("REPLICAOF", host, port); err != nil {
-		return err
+		return errors.Wrapf(err, "error setting replica to %s:%s", host, port)
 	}
 
+	logrus.Debugf("updating wpool to master on %s", m.RedisURL)
 	s.wpool, err = getPool(m.RedisURL)
 	if err != nil {
 		return err
@@ -307,16 +322,10 @@ func (s *Server) updateMasterInfo(ctx context.Context) error {
 		}
 		return err
 	}
-	u, err := url.Parse(s.cfg.RedisURL)
-	if err != nil {
-		return err
-	}
-	// update master redis url to gateway to serve over wireguard
-	u.Host = fmt.Sprintf("%s:%s", gatewayIP.String(), u.Port())
 	m := &v1.Master{
 		ID:          s.cfg.ID,
 		GRPCAddress: s.cfg.AdvertiseGRPCAddress,
-		RedisURL:    u.String(),
+		RedisURL:    fmt.Sprintf("redis://%s:%d", gatewayIP.String(), s.cfg.RedisPort),
 		GatewayIP:   gatewayIP.String(),
 	}
 	data, err := proto.Marshal(m)
@@ -369,7 +378,7 @@ func (s *Server) updateLocalNodeInfo(ctx context.Context) error {
 
 	data, err := proto.Marshal(node)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error marshalling local node info")
 	}
 
 	if _, err := s.master(ctx, "SET", key, data); err != nil {

@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -25,10 +25,10 @@ import (
 	"context"
 	"os"
 
+	"github.com/ehazlett/heimdall"
+	v1 "github.com/ehazlett/heimdall/api/v1"
+	"github.com/ehazlett/heimdall/wg"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/heimdall"
-	v1 "github.com/stellarproject/heimdall/api/v1"
-	"github.com/stellarproject/heimdall/wg"
 )
 
 func (p *Peer) sync(ctx context.Context) error {
@@ -54,7 +54,7 @@ func (p *Peer) sync(ctx context.Context) error {
 
 	// generate wireguard config
 	wireguardCfg := &wg.Config{
-		Iface:      p.cfg.InterfaceName,
+		Interface:  p.cfg.InterfaceName,
 		Address:    resp.Address,
 		PrivateKey: resp.KeyPair.PrivateKey,
 		Peers:      peers,

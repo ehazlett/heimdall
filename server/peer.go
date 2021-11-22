@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -27,12 +27,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/ehazlett/heimdall"
+	v1 "github.com/ehazlett/heimdall/api/v1"
+	"github.com/ehazlett/heimdall/wg"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/heimdall"
-	v1 "github.com/stellarproject/heimdall/api/v1"
-	"github.com/stellarproject/heimdall/wg"
 )
 
 // Peers returns a list of known peers
@@ -104,12 +105,12 @@ func (s *Server) peerUpdater(ctx context.Context) {
 func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
 	keypair, err := s.getOrCreateKeyPair(ctx, id)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting or creating keypair")
 	}
 
 	endpoint, err := s.getPeerEndpoint(ctx, id)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting peer endpoint")
 	}
 
 	// build allowedIPs from routes and peer network
@@ -121,7 +122,7 @@ func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
 	}
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting nodes")
 	}
 
 	for _, node := range nodes {
@@ -132,7 +133,7 @@ func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
 
 		_, gatewayNet, err := s.getNodeIP(ctx, node.ID)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "error getting node ip for %s", node.ID)
 		}
 
 		allowedIPs = append(allowedIPs, gatewayNet.String())
@@ -140,7 +141,7 @@ func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
 
 	routes, err := s.getRoutes(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error getting routes")
 	}
 
 	for _, route := range routes {
@@ -161,7 +162,7 @@ func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
 
 	data, err := proto.Marshal(n)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error marshalling peer info")
 	}
 	pHash := heimdall.HashData(data)
 
@@ -233,11 +234,12 @@ func (s *Server) updatePeerConfig(ctx context.Context, node *v1.Node, peers []*v
 
 	//size, _ := gatewayNet.Mask.Size()
 	wireguardCfg := &wg.Config{
-		Iface:      node.InterfaceName,
-		PrivateKey: node.KeyPair.PrivateKey,
-		ListenPort: int(node.EndpointPort),
-		Address:    fmt.Sprintf("%s/%d", node.GatewayIP, 16),
-		Peers:      nodePeers,
+		Interface:     node.InterfaceName,
+		NodeInterface: s.nodeInterface,
+		PrivateKey:    node.KeyPair.PrivateKey,
+		ListenPort:    int(node.EndpointPort),
+		Address:       fmt.Sprintf("%s/%d", node.GatewayIP, 16),
+		Peers:         nodePeers,
 	}
 
 	wireguardConfigPath := s.getWireguardConfigPath()
@@ -251,15 +253,12 @@ func (s *Server) updatePeerConfig(ctx context.Context, node *v1.Node, peers []*v
 		return err
 	}
 
-	e, err := heimdall.HashConfig(wireguardConfigPath)
-	if err != nil {
-		return err
-	}
-
 	// if config has not change skip update
-	if h == e {
+	if h == s.currentConfigHash {
 		return nil
 	}
+	// update config hash
+	s.currentConfigHash = h
 
 	logrus.Debugf("updating peer config to version %s", h)
 	// update wireguard config

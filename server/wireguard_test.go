@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -26,7 +26,12 @@ import (
 	"os"
 	"testing"
 
-	v1 "github.com/stellarproject/heimdall/api/v1"
+	v1 "github.com/ehazlett/heimdall/api/v1"
+	"github.com/ehazlett/heimdall/wg"
+)
+
+const (
+	defaultWireguardInterface = "darknet"
 )
 
 func TestWireguardTemplate(t *testing.T) {
@@ -38,19 +43,21 @@ Address = 1.2.3.4:10000
 PostUp = iptables -A FORWARD -i darknet -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i darknet -j ACCEPT; ip6tables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 PostDown = iptables -D FORWARD -i darknet -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i darknet -j ACCEPT; ip6tables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 
+# test-peer
 [Peer]
 PublicKey = PEER-PUBLIC-KEY
 AllowedIPs = 10.100.0.0/24, 10.254.0.0/16
 Endpoint = 100.100.100.100:10000
 
 `
-	cfg := &wireguardConfig{
+	cfg := &wg.Config{
 		Iface:      defaultWireguardInterface,
 		PrivateKey: "SERVER-PRIVATE-KEY",
 		ListenPort: 10000,
 		Address:    "1.2.3.4:10000",
 		Peers: []*v1.Peer{
 			{
+				ID: "test-peer",
 				KeyPair: &v1.KeyPair{
 					PrivateKey: "PEER-PRIVATE-KEY",
 					PublicKey:  "PEER-PUBLIC-KEY",
@@ -60,11 +67,17 @@ Endpoint = 100.100.100.100:10000
 			},
 		},
 	}
-	configPath, err := generateNodeWireguardConfig(cfg)
+	tmpDir, err := ioutil.TempDir("", "heimdall-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(configPath)
+	defer os.RemoveAll(tmpDir)
+
+	configPath, err := wg.GenerateNodeConfig(cfg, tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	data, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		t.Fatal(err)

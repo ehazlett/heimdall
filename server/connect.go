@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -23,12 +23,12 @@ package server
 
 import (
 	"context"
-	"errors"
 
+	v1 "github.com/ehazlett/heimdall/api/v1"
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
 var (
@@ -60,6 +60,13 @@ func (s *Server) AuthorizePeer(ctx context.Context, req *v1.AuthorizePeerRequest
 func (s *Server) DeauthorizePeer(ctx context.Context, req *v1.DeauthorizePeerRequest) (*ptypes.Empty, error) {
 	logrus.Debugf("deauthorizing peer %s", req.ID)
 	if _, err := s.master(ctx, "SREM", authorizedPeersKey, req.ID); err != nil {
+		return nil, err
+	}
+	if _, err := s.master(ctx, "DEL", s.getPeerKey(req.ID)); err != nil {
+		return nil, err
+	}
+	// notify to restart tunnels
+	if _, err := s.master(ctx, "PUBLISH", nodeEventRestartTunnelKey, "1"); err != nil {
 		return nil, err
 	}
 	logrus.Infof("deauthorized peer %s", req.ID)

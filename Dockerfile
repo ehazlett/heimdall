@@ -1,4 +1,4 @@
-FROM golang:1.12 AS build
+FROM golang:1.16 AS build
 ARG BUILD
 
 WORKDIR /go/src/github.com/stellarproject/heimdall

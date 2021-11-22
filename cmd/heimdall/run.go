@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -30,33 +30,34 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/ehazlett/heimdall"
+	"github.com/ehazlett/heimdall/server"
+	"github.com/ehazlett/heimdall/version"
 	"github.com/sirupsen/logrus"
-	"github.com/stellarproject/heimdall"
-	"github.com/stellarproject/heimdall/server"
-	"github.com/stellarproject/heimdall/version"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
-func runServer(cx *cli.Context) error {
+func runServer(clix *cli.Context) error {
 	cfg := &heimdall.Config{
-		ID:                    cx.String("id"),
-		GRPCAddress:           cx.String("addr"),
-		AdvertiseGRPCAddress:  cx.String("advertise-grpc-address"),
-		GRPCPeerAddress:       cx.String("peer"),
-		ClusterKey:            cx.String("cluster-key"),
-		NodeNetwork:           cx.String("node-network"),
-		PeerNetwork:           cx.String("peer-network"),
-		EndpointIP:            cx.String("endpoint-ip"),
-		EndpointPort:          cx.Int("endpoint-port"),
-		InterfaceName:         cx.String("interface-name"),
-		RedisURL:              cx.String("redis-url"),
-		TLSServerCertificate:  cx.String("cert"),
-		TLSServerKey:          cx.String("key"),
-		TLSClientCertificate:  cx.String("client-cert"),
-		TLSClientKey:          cx.String("client-key"),
-		TLSInsecureSkipVerify: cx.Bool("skip-verify"),
+		ID:                    clix.String("id"),
+		DataDir:               clix.String("data-dir"),
+		RedisPort:             clix.Int("redis-port"),
+		GRPCAddress:           clix.String("addr"),
+		AdvertiseGRPCAddress:  clix.String("advertise-grpc-address"),
+		GRPCPeerAddress:       clix.String("peer"),
+		ClusterKey:            clix.String("cluster-key"),
+		NodeNetwork:           clix.String("node-network"),
+		PeerNetwork:           clix.String("peer-network"),
+		EndpointIP:            clix.String("endpoint-ip"),
+		EndpointPort:          clix.Int("endpoint-port"),
+		InterfaceName:         clix.String("interface-name"),
+		TLSServerCertificate:  clix.String("cert"),
+		TLSServerKey:          clix.String("key"),
+		TLSClientCertificate:  clix.String("client-cert"),
+		TLSClientKey:          clix.String("client-key"),
+		TLSInsecureSkipVerify: clix.Bool("skip-verify"),
 	}
 
 	errCh := make(chan error, 1)

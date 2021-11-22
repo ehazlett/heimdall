@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -24,7 +24,7 @@ package client
 import (
 	"context"
 
-	v1 "github.com/stellarproject/heimdall/api/v1"
+	v1 "github.com/ehazlett/heimdall/api/v1"
 )
 
 // AuthorizePeer authorizes a new peer to the cluster

@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -25,10 +25,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ehazlett/heimdall"
+	"github.com/ehazlett/heimdall/version"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-	"github.com/stellarproject/heimdall"
-	"github.com/stellarproject/heimdall/version"
 	"github.com/urfave/cli"
 )
 
@@ -53,6 +53,18 @@ func main() {
 			Usage:  "node id",
 			Value:  heimdall.NodeID(),
 			EnvVar: "HEIMDALL_NODE_ID",
+		},
+		cli.StringFlag{
+			Name:   "data-dir",
+			Usage:  "dir for local node state",
+			Value:  "/var/lib/heimdall",
+			EnvVar: "HEIMDALL_DATA_DIR",
+		},
+		cli.IntFlag{
+			Name:   "redis-port",
+			Usage:  "port to use for the managed Redis server",
+			Value:  16379,
+			EnvVar: "HEIMDALL_REDIS_PORT",
 		},
 		cli.StringFlag{
 			Name:   "addr, a",

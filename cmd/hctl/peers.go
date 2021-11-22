@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -101,6 +101,9 @@ var authorizePeerCommand = cli.Command{
 		defer c.Close()
 
 		id := cx.Args().First()
+		if id == "" {
+			return fmt.Errorf("ID cannot be empty")
+		}
 		return c.AuthorizePeer(id)
 	},
 }
@@ -116,6 +119,9 @@ var deauthorizePeerCommand = cli.Command{
 		defer c.Close()
 
 		id := cx.Args().First()
+		if id == "" {
+			return fmt.Errorf("ID cannot be empty")
+		}
 		return c.DeauthorizePeer(id)
 	},
 }

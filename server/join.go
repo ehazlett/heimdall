@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Stellar Project
+	Copyright 2021 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -23,12 +23,12 @@ package server
 
 import (
 	"context"
-	"errors"
 
+	v1 "github.com/ehazlett/heimdall/api/v1"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "github.com/stellarproject/heimdall/api/v1"
 )
 
 var (
@@ -57,12 +57,12 @@ func (s *Server) Join(ctx context.Context, req *v1.JoinRequest) (*v1.JoinRespons
 	}
 	var master v1.Master
 	if err := proto.Unmarshal(data, &master); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error unmarshalling master info")
 	}
 
 	peers, err := s.getPeers(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "error getting cluster peers")
 	}
 
 	if err := s.ensureNetworkSubnet(ctx, req.ID); err != nil {
@@ -72,15 +72,15 @@ func (s *Server) Join(ctx context.Context, req *v1.JoinRequest) (*v1.JoinRespons
 	node, err := s.getNode(ctx, req.ID)
 	if err != nil {
 		if err != redis.ErrNil {
-			return nil, err
+			return nil, errors.Wrapf(err, "error getting node info from redis for %s", req.ID)
 		}
 		n, err := s.createNode(ctx, req)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "error creating node")
 		}
 
 		if err := s.updatePeerInfo(ctx, req.ID); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "error updating peer info")
 		}
 
 		node = n
