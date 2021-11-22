@@ -216,19 +216,6 @@ func (s *Server) Run() error {
 		return err
 	}
 
-	// reconfigure redis to listen on gateway ip
-	nodeIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
-	if err != nil {
-		return err
-	}
-	// if no master was joined, configure local redis as master
-	if masterRedisURL == "" {
-		masterRedisURL = fmt.Sprintf("redis://%s:%d", nodeIP.String(), s.cfg.RedisPort)
-	}
-	if err := s.reconfigureRedis(ctx, nodeIP.String(), masterRedisURL); err != nil {
-		return err
-	}
-
 	// initial node update
 	if err := s.updateLocalNodeInfo(ctx); err != nil {
 		return err
@@ -253,6 +240,19 @@ func (s *Server) Run() error {
 		return err
 	}
 	if err := s.updatePeerConfig(ctx, node, peers); err != nil {
+		return err
+	}
+
+	// reconfigure redis to listen on gateway ip
+	nodeIP, _, err := s.getNodeIP(ctx, s.cfg.ID)
+	if err != nil {
+		return err
+	}
+	// if no master was joined, configure local redis as master
+	if masterRedisURL == "" {
+		masterRedisURL = fmt.Sprintf("redis://%s:%d", nodeIP.String(), s.cfg.RedisPort)
+	}
+	if err := s.reconfigureRedis(ctx, nodeIP.String(), masterRedisURL); err != nil {
 		return err
 	}
 
