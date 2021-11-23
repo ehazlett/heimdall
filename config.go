@@ -41,6 +41,8 @@ type Config struct {
 	ClusterKey string
 	// NodeNetwork is the network for the cluster nodes
 	NodeNetwork string
+	// NodeInterface is the ethernet interface for node network
+	NodeInterface string
 	// PeerNetwork is the subnet that is used for cluster peers
 	PeerNetwork string
 	// EndpointIP is the IP used for peer communication

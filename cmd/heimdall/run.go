@@ -49,6 +49,7 @@ func runServer(clix *cli.Context) error {
 		GRPCPeerAddress:       clix.String("peer"),
 		ClusterKey:            clix.String("cluster-key"),
 		NodeNetwork:           clix.String("node-network"),
+		NodeInterface: clix.String("node-interface"),
 		PeerNetwork:           clix.String("peer-network"),
 		EndpointIP:            clix.String("endpoint-ip"),
 		EndpointPort:          clix.Int("endpoint-port"),

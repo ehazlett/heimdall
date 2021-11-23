@@ -116,10 +116,6 @@ func NewServer(cfg *heimdall.Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	nodeInterface, err := getNodeInterfaceName(cfg.EndpointIP)
-	if err != nil {
-		return nil, err
-	}
 	return &Server{
 		cfg:           cfg,
 		redisCmd:      redisCmd,
@@ -127,7 +123,7 @@ func NewServer(cfg *heimdall.Config) (*Server, error) {
 		rpool:         pool,
 		wpool:         pool,
 		replicaCh:     make(chan struct{}, 1),
-		nodeInterface: nodeInterface,
+		nodeInterface: cfg.NodeInterface,
 	}, nil
 }
 
@@ -617,30 +613,4 @@ func (s *Server) reconfigureRedis(ctx context.Context, localIP string, masterRed
 	s.wpool = wpool
 
 	return nil
-}
-
-func getNodeInterfaceName(endpointIP string) (string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	for _, iface := range ifaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return "", err
-		}
-
-		for _, addr := range addrs {
-			ip, _, err := net.ParseCIDR(addr.String())
-			if err != nil {
-				logrus.WithError(err).Warn("error parsing iface address CIDR")
-				continue
-			}
-			if ip.String() == endpointIP {
-				return iface.Name, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("unable to determine interface name for endpoint IP %s", endpointIP)
 }

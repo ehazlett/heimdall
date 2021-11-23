@@ -90,6 +90,12 @@ func main() {
 			EnvVar: "HEIMDALL_CLUSTER_KEY",
 		},
 		cli.StringFlag{
+			Name: "node-interface",
+			Usage: "interface to use for network tunnel",
+			Value: "eth0",
+			EnvVar: "HEIMDALL_NODE_INTERFACE",
+		},
+		cli.StringFlag{
 			Name:   "node-network",
 			Usage:  "subnet to be used for nodes",
 			Value:  "10.10.0.0/16",

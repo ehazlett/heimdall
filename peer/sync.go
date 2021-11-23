@@ -32,6 +32,7 @@ import (
 )
 
 func (p *Peer) sync(ctx context.Context) error {
+	logrus.Debugf("syncing with node %s", p.cfg.Address)
 	c, err := p.getClient(p.cfg.Address)
 	if err != nil {
 		return err

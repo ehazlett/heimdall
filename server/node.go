@@ -368,13 +368,15 @@ func (s *Server) updateLocalNodeInfo(ctx context.Context) error {
 	node := &v1.Node{
 		Updated:       time.Now(),
 		ID:            s.cfg.ID,
-		Addr:          s.cfg.GRPCAddress,
+		Addr:          s.cfg.AdvertiseGRPCAddress,
 		KeyPair:       keyPair,
 		EndpointIP:    s.cfg.EndpointIP,
 		EndpointPort:  uint64(s.cfg.EndpointPort),
 		GatewayIP:     nodeIP.String(),
 		InterfaceName: s.cfg.InterfaceName,
 	}
+
+	logrus.Debugf("local node info: %+v", node)
 
 	data, err := proto.Marshal(node)
 	if err != nil {
