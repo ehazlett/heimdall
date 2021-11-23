@@ -79,12 +79,6 @@ func main() {
 			EnvVar: "HEIMDALL_ADVERTISE_GRPC_ADDR",
 		},
 		cli.StringFlag{
-			Name:   "redis-url, r",
-			Usage:  "uri for datastore backend",
-			Value:  "redis://127.0.0.1:6379/0",
-			EnvVar: "HEIMDALL_REDIS_URL",
-		},
-		cli.StringFlag{
 			Name:   "peer",
 			Usage:  "grpc address to join a peer",
 			EnvVar: "HEIMDALL_PEER",
