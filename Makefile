@@ -1,6 +1,6 @@
 COMMIT=$(shell git rev-parse HEAD | head -c 8)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
 REGISTRY?=docker.io
-NAMESPACE?=stellarproject
+NAMESPACE?=ehazlett
 IMAGE_NAMESPACE?=$(NAMESPACE)
 APP=heimdall
 CLI=hctl
