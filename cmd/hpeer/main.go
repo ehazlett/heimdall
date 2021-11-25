@@ -39,7 +39,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "hpeer"
 	app.Version = version.BuildVersion()
-	app.Author = "@stellarproject"
+	app.Author = "@ehazlett"
 	app.Email = ""
 	app.Usage = version.Description
 	app.Flags = []cli.Flag{
