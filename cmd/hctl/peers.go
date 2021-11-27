@@ -56,9 +56,9 @@ var listPeersCommand = cli.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
-		fmt.Fprintf(w, "ID\tPUBLIC KEY\tENDPOINT\tALLOWED\n")
+		fmt.Fprintf(w, "ID\tPUBLIC KEY\tENDPOINT\tALLOWED\tPEER IP\n")
 		for _, p := range peers {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", p.ID, p.KeyPair.PublicKey, p.Endpoint, p.AllowedIPs)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", p.ID, p.KeyPair.PublicKey, p.Endpoint, p.AllowedIPs, p.PeerIP)
 		}
 		w.Flush()
 

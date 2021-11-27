@@ -63,6 +63,13 @@ func (s *Server) getPeers(ctx context.Context) ([]*v1.Peer, error) {
 		if err := proto.Unmarshal(data, &peer); err != nil {
 			return nil, err
 		}
+		peerIP, err := s.getPeerIP(ctx, peer.ID)
+		if err != nil {
+			return nil, err
+		}
+		if peerIP != nil {
+			peer.PeerIP = peerIP.String()
+		}
 		peers = append(peers, &peer)
 	}
 	return peers, nil
@@ -118,7 +125,11 @@ func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
 
 	// add peer net
 	if endpoint == "" {
-		allowedIPs = append(allowedIPs, s.cfg.PeerNetwork)
+		peerIP, err := s.getPeerIP(ctx, id)
+		if err != nil {
+			return err
+		}
+		allowedIPs = append(allowedIPs, peerIP.String()+"/32")
 	}
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
@@ -232,7 +243,6 @@ func (s *Server) updatePeerConfig(ctx context.Context, node *v1.Node, peers []*v
 		nodePeers = append(nodePeers, peer)
 	}
 
-	//size, _ := gatewayNet.Mask.Size()
 	wireguardCfg := &wg.Config{
 		Interface:     node.InterfaceName,
 		NodeInterface: s.nodeInterface,

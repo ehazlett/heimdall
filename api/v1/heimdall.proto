@@ -99,6 +99,7 @@ message Peer {
         KeyPair keypair = 2 [(gogoproto.customname) = "KeyPair"];
         repeated string allowed_ips = 3 [(gogoproto.customname) = "AllowedIPs"];
         string endpoint = 4;
+        string peer_ip = 5 [(gogoproto.customname) = "PeerIP"];
 }
 
 message PeersRequest {}
