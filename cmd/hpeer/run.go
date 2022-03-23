@@ -26,16 +26,17 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
 	"github.com/ehazlett/heimdall"
 	"github.com/ehazlett/heimdall/peer"
 	"github.com/ehazlett/heimdall/version"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 func run(cx *cli.Context) error {
 	cfg := &heimdall.PeerConfig{
 		ID:                    cx.String("id"),
+		Name:                  cx.String("name"),
 		Address:               cx.String("addr"),
 		UpdateInterval:        cx.Duration("update-interval"),
 		InterfaceName:         cx.String("interface-name"),

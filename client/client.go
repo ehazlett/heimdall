@@ -36,9 +36,9 @@ import (
 
 // Client is the Atlas client
 type Client struct {
-	id             string
-	conn           *grpc.ClientConn
-	heimdallClient v1.HeimdallClient
+	v1.HeimdallClient
+	id   string
+	conn *grpc.ClientConn
 }
 
 // NewClient returns a new Atlas client configured with the specified address and options
@@ -79,9 +79,9 @@ func NewClient(id, addr string, opts ...grpc.DialOption) (*Client, error) {
 	}
 
 	client := &Client{
-		id:             id,
-		conn:           c,
-		heimdallClient: v1.NewHeimdallClient(c),
+		v1.NewHeimdallClient(c),
+		id,
+		c,
 	}
 
 	return client, nil

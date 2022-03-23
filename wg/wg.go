@@ -49,6 +49,7 @@ PostDown = iptables -D FORWARD -i {{ .Interface }} -j ACCEPT; iptables -t nat -D
 # {{ .ID }}
 [Peer]
 PublicKey = {{ .KeyPair.PublicKey }}
+PersistentKeepalive = 25
 {{ if .AllowedIPs }}AllowedIPs = {{ csvList .AllowedIPs }}{{ end }}{{ if ne .Endpoint "" }}
 Endpoint = {{ .Endpoint }}{{ end }}
 {{ end }}
@@ -59,12 +60,14 @@ PrivateKey = {{ .PrivateKey }}
 Address = {{ .Address }}
 DNS = {{ csvList .DNS }}
 {{ range .Peers }}
+{{ if ne .Endpoint "" }}
 # {{ .ID }}
 [Peer]
 PublicKey = {{ .KeyPair.PublicKey }}
-{{ if .AllowedIPs }}AllowedIPs = {{ csvList .AllowedIPs }}{{ end }}{{ if ne .Endpoint "" }}
-Endpoint = {{ .Endpoint }}{{ end }}
-{{ end }}
+PersistentKeepalive = 25
+{{ if .AllowedIPs }}AllowedIPs = {{ csvList .AllowedIPs }}{{ end }}
+Endpoint = {{ .Endpoint }}
+{{ end }}{{ end }}
 `
 )
 

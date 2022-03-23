@@ -39,6 +39,7 @@ message JoinRequest {
         string endpoint_ip = 4 [(gogoproto.customname) = "EndpointIP"];
         uint64 endpoint_port = 5;
         string interface_name = 6;
+        string name = 7;
 }
 
 message JoinResponse {
@@ -49,6 +50,7 @@ message JoinResponse {
 
 message ConnectRequest {
         string id = 1 [(gogoproto.customname) = "ID"];
+        string name = 2;
 }
 
 message ConnectResponse {
@@ -100,6 +102,7 @@ message Peer {
         repeated string allowed_ips = 3 [(gogoproto.customname) = "AllowedIPs"];
         string endpoint = 4;
         string peer_ip = 5 [(gogoproto.customname) = "PeerIP"];
+        string name = 6;
 }
 
 message PeersRequest {}

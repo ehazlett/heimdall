@@ -39,7 +39,10 @@ func (p *Peer) sync(ctx context.Context) error {
 	}
 	defer c.Close()
 
-	resp, err := c.Connect()
+	resp, err := c.Connect(ctx, &v1.ConnectRequest{
+		ID:   p.cfg.ID,
+		Name: p.cfg.Name,
+	})
 	if err != nil {
 		return err
 	}

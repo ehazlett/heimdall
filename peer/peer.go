@@ -27,10 +27,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/ehazlett/heimdall"
 	"github.com/ehazlett/heimdall/client"
 	"github.com/ehazlett/heimdall/version"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 

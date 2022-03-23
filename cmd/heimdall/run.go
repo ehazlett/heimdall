@@ -42,6 +42,7 @@ import (
 func runServer(clix *cli.Context) error {
 	cfg := &heimdall.Config{
 		ID:                    clix.String("id"),
+		Name:                  clix.String("name"),
 		DataDir:               clix.String("data-dir"),
 		RedisPort:             clix.Int("redis-port"),
 		GRPCAddress:           clix.String("addr"),
@@ -49,11 +50,14 @@ func runServer(clix *cli.Context) error {
 		GRPCPeerAddress:       clix.String("peer"),
 		ClusterKey:            clix.String("cluster-key"),
 		NodeNetwork:           clix.String("node-network"),
-		NodeInterface: clix.String("node-interface"),
+		NodeInterface:         clix.String("node-interface"),
 		PeerNetwork:           clix.String("peer-network"),
 		EndpointIP:            clix.String("endpoint-ip"),
 		EndpointPort:          clix.Int("endpoint-port"),
+		DNSServerAddress:      clix.String("dns-address"),
+		DNSUpstreamAddress:    clix.String("dns-upstream-address"),
 		InterfaceName:         clix.String("interface-name"),
+		AuthorizedPeers:       clix.StringSlice("authorized-peer"),
 		TLSServerCertificate:  clix.String("cert"),
 		TLSServerKey:          clix.String("key"),
 		TLSClientCertificate:  clix.String("client-cert"),

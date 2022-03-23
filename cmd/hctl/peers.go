@@ -22,10 +22,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
+	v1 "github.com/ehazlett/heimdall/api/v1"
 	"github.com/urfave/cli"
 )
 
@@ -50,14 +52,16 @@ var listPeersCommand = cli.Command{
 		}
 		defer c.Close()
 
-		peers, err := c.Peers()
+		ctx := context.Background()
+
+		resp, err := c.Peers(ctx, &v1.PeersRequest{})
 		if err != nil {
 			return err
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 		fmt.Fprintf(w, "ID\tPUBLIC KEY\tENDPOINT\tALLOWED\tPEER IP\n")
-		for _, p := range peers {
+		for _, p := range resp.Peers {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", p.ID, p.KeyPair.PublicKey, p.Endpoint, p.AllowedIPs, p.PeerIP)
 		}
 		w.Flush()
@@ -76,13 +80,15 @@ var authorizedPeersCommand = cli.Command{
 		}
 		defer c.Close()
 
-		ids, err := c.AuthorizedPeers()
+		ctx := context.Background()
+
+		resp, err := c.AuthorizedPeers(ctx, &v1.AuthorizedPeersRequest{})
 		if err != nil {
 			return err
 		}
 		w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 		fmt.Fprintf(w, "ID\n")
-		for _, id := range ids {
+		for _, id := range resp.IDs {
 			fmt.Fprintf(w, "%s\n", id)
 		}
 		w.Flush()
@@ -100,11 +106,18 @@ var authorizePeerCommand = cli.Command{
 		}
 		defer c.Close()
 
+		ctx := context.Background()
+
 		id := cx.Args().First()
 		if id == "" {
 			return fmt.Errorf("ID cannot be empty")
 		}
-		return c.AuthorizePeer(id)
+		if _, err := c.AuthorizePeer(ctx, &v1.AuthorizePeerRequest{
+			ID: id,
+		}); err != nil {
+			return err
+		}
+		return nil
 	},
 }
 
@@ -118,10 +131,17 @@ var deauthorizePeerCommand = cli.Command{
 		}
 		defer c.Close()
 
+		ctx := context.Background()
+
 		id := cx.Args().First()
 		if id == "" {
 			return fmt.Errorf("ID cannot be empty")
 		}
-		return c.DeauthorizePeer(id)
+		if _, err := c.DeauthorizePeer(ctx, &v1.DeauthorizePeerRequest{
+			ID: id,
+		}); err != nil {
+			return err
+		}
+		return nil
 	},
 }

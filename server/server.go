@@ -159,7 +159,7 @@ func (s *Server) Run() error {
 		}
 		defer c.Close()
 
-		r, err := c.Join(&v1.JoinRequest{
+		r, err := c.Join(ctx, &v1.JoinRequest{
 			ID:            s.cfg.ID,
 			ClusterKey:    s.cfg.ClusterKey,
 			GRPCAddress:   s.cfg.GRPCAddress,
@@ -221,7 +221,7 @@ func (s *Server) Run() error {
 	go s.updateNodeInfo(ctx)
 
 	// initial peer info update
-	if err := s.updatePeerInfo(ctx, s.cfg.ID); err != nil {
+	if err := s.updatePeerInfo(ctx, s.cfg.ID, s.cfg.Name); err != nil {
 		return err
 	}
 
@@ -272,10 +272,21 @@ func (s *Server) Run() error {
 				}
 			case redis.Subscription:
 			default:
-				logrus.Debugf("unknown message type %T", v)
+				logrus.Debugf("unknown message type %T: %s", v, v)
 			}
 		}
 	}()
+
+	// authorize initial peers
+	for _, peer := range s.cfg.AuthorizedPeers {
+		if _, err := s.AuthorizePeer(ctx, &v1.AuthorizePeerRequest{
+			ID: peer,
+		}); err != nil {
+			logrus.WithError(err).Errorf("error authorizing peer %s", peer)
+		}
+	}
+
+	go s.startDNSServer()
 
 	err = <-errCh
 	return err

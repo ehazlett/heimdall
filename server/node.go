@@ -101,7 +101,7 @@ func (s *Server) configureNode() error {
 				logrus.Warn(err)
 				continue
 			}
-			r, err := c.Join(&v1.JoinRequest{
+			r, err := c.Join(ctx, &v1.JoinRequest{
 				ID:            s.cfg.ID,
 				ClusterKey:    s.cfg.ClusterKey,
 				GRPCAddress:   s.cfg.GRPCAddress,

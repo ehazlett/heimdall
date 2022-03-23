@@ -104,7 +104,7 @@ func (s *Server) Connect(ctx context.Context, req *v1.ConnectRequest) (*v1.Conne
 	if err != nil {
 		return nil, err
 	}
-	if err := s.updatePeerInfo(ctx, req.ID); err != nil {
+	if err := s.updatePeerInfo(ctx, req.ID, req.Name); err != nil {
 		return nil, err
 	}
 	// save peer

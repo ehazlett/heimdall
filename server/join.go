@@ -79,7 +79,7 @@ func (s *Server) Join(ctx context.Context, req *v1.JoinRequest) (*v1.JoinRespons
 			return nil, errors.Wrap(err, "error creating node")
 		}
 
-		if err := s.updatePeerInfo(ctx, req.ID); err != nil {
+		if err := s.updatePeerInfo(ctx, req.ID, req.Name); err != nil {
 			return nil, errors.Wrap(err, "error updating peer info")
 		}
 

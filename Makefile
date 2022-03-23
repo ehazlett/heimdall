@@ -47,7 +47,7 @@ endif
 
 all: binaries
 
-generate:
+protos:
 	@>&2 echo " -> building protobufs for grpc"
 	@echo ${PACKAGES} | xargs protobuild -quiet
 
@@ -89,4 +89,4 @@ clean:
 	@rm -rf *.tar.gz
 	@rm -rf build/
 
-.PHONY: generate clean check test install binaries cli daemon lint
+.PHONY: protos clean check test install binaries cli daemon lint

@@ -80,7 +80,7 @@ func (s *Server) peerUpdater(ctx context.Context) {
 	t := time.NewTicker(peerConfigUpdateInterval)
 	for range t.C {
 		uctx, cancel := context.WithTimeout(ctx, peerConfigUpdateInterval)
-		if err := s.updatePeerInfo(uctx, s.cfg.ID); err != nil {
+		if err := s.updatePeerInfo(uctx, s.cfg.ID, s.cfg.Name); err != nil {
 			logrus.Errorf("updateLocalPeerInfo: %s", err)
 			cancel()
 			continue
@@ -109,7 +109,7 @@ func (s *Server) peerUpdater(ctx context.Context) {
 	}
 }
 
-func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
+func (s *Server) updatePeerInfo(ctx context.Context, id, name string) error {
 	keypair, err := s.getOrCreateKeyPair(ctx, id)
 	if err != nil {
 		return errors.Wrap(err, "error getting or creating keypair")
@@ -166,6 +166,7 @@ func (s *Server) updatePeerInfo(ctx context.Context, id string) error {
 
 	n := &v1.Peer{
 		ID:         id,
+		Name:       name,
 		KeyPair:    keypair,
 		AllowedIPs: allowedIPs,
 		Endpoint:   endpoint,

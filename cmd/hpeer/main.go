@@ -26,9 +26,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/ehazlett/heimdall"
 	"github.com/ehazlett/heimdall/version"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -52,6 +52,12 @@ func main() {
 			Usage:  "peer id for cluster",
 			Value:  heimdall.NodeID(),
 			EnvVar: "HEIMDALL_ID",
+		},
+		cli.StringFlag{
+			Name:   "name",
+			Usage:  "peer name",
+			Value:  getHostname(),
+			EnvVar: "HEIMDALL_NAME",
 		},
 		cli.StringFlag{
 			Name:   "addr",
@@ -97,4 +103,12 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
 	}
+}
+
+func getHostname() string {
+	h, err := os.Hostname()
+	if err != nil {
+		return "unknown"
+	}
+	return h
 }

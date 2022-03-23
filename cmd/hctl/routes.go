@@ -22,10 +22,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
+	v1 "github.com/ehazlett/heimdall/api/v1"
 	"github.com/urfave/cli"
 )
 
@@ -49,14 +51,16 @@ var listRoutesCommand = cli.Command{
 		}
 		defer c.Close()
 
-		routes, err := c.Routes()
+		ctx := context.Background()
+
+		resp, err := c.Routes(ctx, &v1.RoutesRequest{})
 		if err != nil {
 			return err
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
 		fmt.Fprintf(w, "NODE\tNETWORK\n")
-		for _, r := range routes {
+		for _, r := range resp.Routes {
 			fmt.Fprintf(w, "%s\t%s\n", r.NodeID, r.Network)
 		}
 		w.Flush()
@@ -85,7 +89,19 @@ var createRouteCommand = cli.Command{
 		}
 		defer c.Close()
 
-		if err := c.CreateRoute(cx.String("node-id"), cx.String("network")); err != nil {
+		nodeID := cx.String("node-id")
+		network := cx.String("network")
+
+		if nodeID == "" || network == "" {
+			return fmt.Errorf("node-id and network must be specified")
+		}
+
+		ctx := context.Background()
+
+		if _, err := c.CreateRoute(ctx, &v1.CreateRouteRequest{
+			NodeID:  nodeID,
+			Network: network,
+		}); err != nil {
 			return err
 		}
 		return nil
@@ -102,8 +118,16 @@ var deleteRouteCommand = cli.Command{
 		}
 		defer c.Close()
 
+		ctx := context.Background()
+
 		network := cx.Args().First()
-		if err := c.DeleteRoute(network); err != nil {
+		if network == "" {
+			return fmt.Errorf("network must be specified")
+		}
+
+		if _, err := c.DeleteRoute(ctx, &v1.DeleteRouteRequest{
+			Network: network,
+		}); err != nil {
 			return err
 		}
 		return nil

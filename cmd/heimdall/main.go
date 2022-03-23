@@ -55,6 +55,12 @@ func main() {
 			EnvVar: "HEIMDALL_NODE_ID",
 		},
 		cli.StringFlag{
+			Name:   "name",
+			Usage:  "node name",
+			Value:  getHostname(),
+			EnvVar: "HEIMDALL_NODE_NAME",
+		},
+		cli.StringFlag{
 			Name:   "data-dir",
 			Usage:  "dir for local node state",
 			Value:  "/var/lib/heimdall",
@@ -90,9 +96,9 @@ func main() {
 			EnvVar: "HEIMDALL_CLUSTER_KEY",
 		},
 		cli.StringFlag{
-			Name: "node-interface",
-			Usage: "interface to use for network tunnel",
-			Value: "eth0",
+			Name:   "node-interface",
+			Usage:  "interface to use for network tunnel",
+			Value:  "eth0",
 			EnvVar: "HEIMDALL_NODE_INTERFACE",
 		},
 		cli.StringFlag{
@@ -120,10 +126,25 @@ func main() {
 			EnvVar: "HEIMDALL_ENDPOINT_PORT",
 		},
 		cli.StringFlag{
+			Name:  "dns-address",
+			Usage: "address for the DNS to listen",
+			Value: "0.0.0.0:53",
+		},
+		cli.StringFlag{
+			Name:  "dns-upstream-address",
+			Usage: "address for the upstream DNS server",
+			Value: "8.8.8.8:53",
+		},
+		cli.StringFlag{
 			Name:   "interface-name",
 			Usage:  "interface name to use for peer communication (must not exist)",
 			Value:  "darknet",
 			EnvVar: "HEIMDALL_INTERFACE_NAME",
+		},
+		cli.StringSliceFlag{
+			Name:  "authorized-peer",
+			Usage: "peer to authorize at startup",
+			Value: &cli.StringSlice{},
 		},
 		cli.StringFlag{
 			Name:  "cert, c",
@@ -166,4 +187,12 @@ func main() {
 
 func generateKey() string {
 	return uuid.New().String()
+}
+
+func getHostname() string {
+	h, err := os.Hostname()
+	if err != nil {
+		return "unknown"
+	}
+	return h
 }
