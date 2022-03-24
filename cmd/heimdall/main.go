@@ -113,6 +113,11 @@ func main() {
 			Value:  "10.51.0.0/16",
 			EnvVar: "HEIMDALL_PEER_NETWORK",
 		},
+		cli.BoolFlag{
+			Name:   "allow-peer-to-peer",
+			Usage:  "allow peer to peer communication",
+			EnvVar: "HEIMDALL_ALLOW_PEER_TO_PEER",
+		},
 		cli.StringFlag{
 			Name:   "endpoint-ip",
 			Usage:  "IP used for peer communication",

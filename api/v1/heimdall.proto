@@ -88,6 +88,7 @@ message Node {
         string gateway_ip = 6 [(gogoproto.customname) = "GatewayIP"];
         google.protobuf.Timestamp updated = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
         string interface_name = 8;
+        string name = 9;
 }
 
 message NodesRequest {}

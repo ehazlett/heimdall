@@ -54,6 +54,7 @@ func runServer(clix *cli.Context) error {
 		PeerNetwork:           clix.String("peer-network"),
 		EndpointIP:            clix.String("endpoint-ip"),
 		EndpointPort:          clix.Int("endpoint-port"),
+		AllowPeerToPeer:       clix.Bool("allow-peer-to-peer"),
 		DNSServerAddress:      clix.String("dns-address"),
 		DNSUpstreamAddress:    clix.String("dns-upstream-address"),
 		InterfaceName:         clix.String("interface-name"),

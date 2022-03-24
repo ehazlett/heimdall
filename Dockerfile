@@ -6,5 +6,6 @@ COPY . /go/src/github.com/stellarproject/heimdall
 RUN make
 
 FROM alpine:latest
+RUN apk add -U --no-cache redis wireguard-tools
 COPY --from=build /go/src/github.com/stellarproject/heimdall/bin/* /bin/
-ENTRYPOINT ["/bin/heimdall"]
+CMD ["heimdall", "-h"]

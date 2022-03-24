@@ -43,6 +43,8 @@ type Config struct {
 	DNSServerAddress string
 	// DNSUpstreamAddress is the upstream server for DNS
 	DNSUpstreamAddress string
+	// AllowPeerToPeer enables peer to peer communication
+	AllowPeerToPeer bool
 	// ClusterKey is a preshared key for cluster peers
 	ClusterKey string
 	// NodeNetwork is the network for the cluster nodes

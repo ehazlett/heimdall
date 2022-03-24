@@ -164,6 +164,11 @@ func (s *Server) updatePeerInfo(ctx context.Context, id, name string) error {
 		allowedIPs = append(allowedIPs, route.Network)
 	}
 
+	// add peer to peer if enabled (only for the peers not the nodes)
+	if endpoint != "" && s.cfg.AllowPeerToPeer {
+		allowedIPs = append(allowedIPs, s.cfg.PeerNetwork)
+	}
+
 	n := &v1.Peer{
 		ID:         id,
 		Name:       name,

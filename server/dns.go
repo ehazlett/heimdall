@@ -26,7 +26,6 @@ import (
 	"net"
 	"strings"
 
-	v1 "github.com/ehazlett/heimdall/api/v1"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 )
@@ -54,30 +53,48 @@ func (s *Server) dnsQueryHandler(w dns.ResponseWriter, r *dns.Msg) {
 	m.SetReply(r)
 	m.RecursionAvailable = true
 
+	ctx := context.Background()
+
 	query := m.Question[0].Name
 	queryType := m.Question[0].Qtype
 
-	logrus.Debugf("nameserver: query=%q addr=%q", query, w.RemoteAddr())
+	logrus.Debugf("dns: query=%q addr=%q", query, w.RemoteAddr())
 	name := getName(query, queryType)
 
-	logrus.Debugf("nameserver: looking up %s", name)
-	peers, err := s.getPeers(context.Background())
+	// resolve by node first then peers
+	logrus.Debugf("dns: looking up %s", name)
+	var recordIP net.IP
+
+	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		logrus.WithError(err).Error("error getting peers")
+		logrus.WithError(err).Error("error getting nodes")
 		w.WriteMsg(m)
 		return
 	}
-
-	var peer *v1.Peer
-	for _, p := range peers {
-		logrus.Debugf("dns: checking peer %s (%s)", p.Name, p.ID)
-		if p.Name == name {
-			peer = p
+	for _, n := range nodes {
+		if n.Name == name {
+			recordIP = net.ParseIP(n.GatewayIP)
 			break
 		}
 	}
+
+	if recordIP == nil {
+		peers, err := s.getPeers(ctx)
+		if err != nil {
+			logrus.WithError(err).Error("error getting nodes")
+			w.WriteMsg(m)
+			return
+		}
+		for _, p := range peers {
+			if p.Name == name {
+				recordIP = net.ParseIP(p.PeerIP)
+				break
+			}
+		}
+	}
+
 	// forward if empty
-	if peer == nil {
+	if recordIP == nil {
 		x, err := dns.Exchange(r, s.cfg.DNSUpstreamAddress)
 		if err != nil {
 			logrus.Errorf("dns: error forwarding lookup: %+v", err)
@@ -103,7 +120,7 @@ func (s *Server) dnsQueryHandler(w dns.ResponseWriter, r *dns.Msg) {
 				Class:  dns.ClassINET,
 				Ttl:    0,
 			},
-			A: net.ParseIP(peer.PeerIP),
+			A: recordIP,
 		},
 	}
 

@@ -103,6 +103,7 @@ func (s *Server) configureNode() error {
 			}
 			r, err := c.Join(ctx, &v1.JoinRequest{
 				ID:            s.cfg.ID,
+				Name:          s.cfg.Name,
 				ClusterKey:    s.cfg.ClusterKey,
 				GRPCAddress:   s.cfg.GRPCAddress,
 				EndpointIP:    s.cfg.EndpointIP,
@@ -148,13 +149,13 @@ func (s *Server) configureNode() error {
 	}
 
 	// no peer passed; start as master
-	data, err := redis.Bytes(s.local(context.Background(), "GET", masterKey))
+	data, err := redis.Bytes(s.local(ctx, "GET", masterKey))
 	if err != nil {
 		if err != redis.ErrNil {
 			return err
 		}
-		logrus.Infof("starting as master id=%s", s.cfg.ID)
-		if _, err := s.local(context.Background(), "REPLICAOF", "NO", "ONE"); err != nil {
+		logrus.Infof("starting as master id=%s name=%s", s.cfg.ID, s.cfg.Name)
+		if _, err := s.local(ctx, "REPLICAOF", "NO", "ONE"); err != nil {
 			return err
 		}
 
@@ -368,6 +369,7 @@ func (s *Server) updateLocalNodeInfo(ctx context.Context) error {
 	node := &v1.Node{
 		Updated:       time.Now(),
 		ID:            s.cfg.ID,
+		Name:          s.cfg.Name,
 		Addr:          s.cfg.AdvertiseGRPCAddress,
 		KeyPair:       keyPair,
 		EndpointIP:    s.cfg.EndpointIP,

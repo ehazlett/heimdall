@@ -22,9 +22,12 @@
 package main
 
 import (
+	"net"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/ehazlett/heimdall"
 	"github.com/ehazlett/heimdall/peer"
@@ -44,6 +47,25 @@ func run(cx *cli.Context) error {
 		TLSClientKey:          cx.String("key"),
 		TLSInsecureSkipVerify: cx.Bool("skip-verify"),
 	}
+
+	u, err := url.Parse(cfg.Address)
+	if err != nil {
+		return err
+	}
+	waitCh := make(chan bool, 1)
+	logrus.Debugf("waiting for %s to be reachable", cfg.Address)
+	go func(ch chan bool) {
+		for {
+			if _, err := net.DialTimeout("tcp", u.Host, time.Second*1); err == nil {
+				ch <- true
+				return
+			}
+		}
+	}(waitCh)
+
+	<-waitCh
+
+	// wait until address is reachable
 	p, err := peer.NewPeer(cfg)
 	if err != nil {
 		return err

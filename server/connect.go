@@ -23,6 +23,8 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	v1 "github.com/ehazlett/heimdall/api/v1"
 	ptypes "github.com/gogo/protobuf/types"
@@ -107,10 +109,13 @@ func (s *Server) Connect(ctx context.Context, req *v1.ConnectRequest) (*v1.Conne
 	if err := s.updatePeerInfo(ctx, req.ID, req.Name); err != nil {
 		return nil, err
 	}
+
+	subnetParts := strings.Split(s.cfg.PeerNetwork, "/")
+	subnetCIDR := subnetParts[1]
 	// save peer
 	return &v1.ConnectResponse{
 		KeyPair: keyPair,
-		Address: ip.String() + "/32",
+		Address: fmt.Sprintf("%s/%s", ip.String(), subnetCIDR),
 		Peers:   peers,
 		DNS:     dnsAddrs,
 	}, nil

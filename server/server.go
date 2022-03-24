@@ -161,6 +161,7 @@ func (s *Server) Run() error {
 
 		r, err := c.Join(ctx, &v1.JoinRequest{
 			ID:            s.cfg.ID,
+			Name:          s.cfg.Name,
 			ClusterKey:    s.cfg.ClusterKey,
 			GRPCAddress:   s.cfg.GRPCAddress,
 			EndpointIP:    s.cfg.EndpointIP,
