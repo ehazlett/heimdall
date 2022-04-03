@@ -34,14 +34,14 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// Client is the Atlas client
+// Client is the client
 type Client struct {
 	v1.HeimdallClient
 	id   string
 	conn *grpc.ClientConn
 }
 
-// NewClient returns a new Atlas client configured with the specified address and options
+// NewClient returns a new client configured with the specified address and options
 func NewClient(id, addr string, opts ...grpc.DialOption) (*Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
