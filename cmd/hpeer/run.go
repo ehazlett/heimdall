@@ -22,6 +22,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -34,6 +35,10 @@ import (
 	"github.com/ehazlett/heimdall/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+)
+
+var (
+	initConnectTimeout = time.Second * 10
 )
 
 func run(cx *cli.Context) error {
@@ -60,10 +65,15 @@ func run(cx *cli.Context) error {
 				ch <- true
 				return
 			}
+			time.Sleep(time.Second * 1)
 		}
 	}(waitCh)
 
-	<-waitCh
+	select {
+	case <-waitCh:
+	case <-time.After(initConnectTimeout):
+		return fmt.Errorf("timeout waiting on endpoint %s to be reachable", cfg.Address)
+	}
 
 	// wait until address is reachable
 	p, err := peer.NewPeer(cfg)

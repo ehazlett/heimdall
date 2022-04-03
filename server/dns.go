@@ -118,7 +118,7 @@ func (s *Server) dnsQueryHandler(w dns.ResponseWriter, r *dns.Msg) {
 				Name:   fqdn(name),
 				Rrtype: dns.TypeA,
 				Class:  dns.ClassINET,
-				Ttl:    0,
+				Ttl:    10,
 			},
 			A: recordIP,
 		},
