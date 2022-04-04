@@ -73,6 +73,7 @@ func (s *Server) dnsQueryHandler(w dns.ResponseWriter, r *dns.Msg) {
 	}
 	for _, n := range nodes {
 		if n.Name == name {
+			logrus.Debugf("gateway node: %+v", n)
 			recordIP = net.ParseIP(n.GatewayIP)
 			break
 		}
