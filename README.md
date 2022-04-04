@@ -7,7 +7,7 @@ can only access the network but do not provide routing capabilities.
 ![Heimdall](docs/overview.png)
 
 # Running
-The easiest way to run Heimdall is with containers. It contains an embedded Redis that is configured
+The easiest way to run Heimdall is with containers. The image contains an embedded Redis that is configured
 to be available only on the private network. In this example, we will use [Docker](https://docker.com):
 
 ## Server
