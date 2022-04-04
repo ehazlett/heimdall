@@ -129,7 +129,7 @@ will use the local hostname as the network name, but you can override the name w
 for both the server and peer.
 
 # Local Setup
-The following is a quick start to get Heimdall running.  This has only been tested on Alpine linux but
+The following is a quick start to get Heimdall running using the binaries.  This has only been tested on Alpine linux but
 should be similar with other distros.
 
 ## Dependencies
