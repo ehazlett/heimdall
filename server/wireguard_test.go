@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Evan Hazlett
+	Copyright 2022 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -46,15 +46,17 @@ PostDown = iptables -D FORWARD -i darknet -j ACCEPT; iptables -t nat -D POSTROUT
 # test-peer
 [Peer]
 PublicKey = PEER-PUBLIC-KEY
+PersistentKeepalive = 25
 AllowedIPs = 10.100.0.0/24, 10.254.0.0/16
 Endpoint = 100.100.100.100:10000
 
 `
 	cfg := &wg.Config{
-		Iface:      defaultWireguardInterface,
-		PrivateKey: "SERVER-PRIVATE-KEY",
-		ListenPort: 10000,
-		Address:    "1.2.3.4:10000",
+		Interface:     defaultWireguardInterface,
+		NodeInterface: "eth0",
+		PrivateKey:    "SERVER-PRIVATE-KEY",
+		ListenPort:    10000,
+		Address:       "1.2.3.4:10000",
 		Peers: []*v1.Peer{
 			{
 				ID: "test-peer",

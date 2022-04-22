@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Evan Hazlett
+	Copyright 2022 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -25,10 +25,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/ehazlett/heimdall"
 	"github.com/ehazlett/heimdall/client"
 	"github.com/ehazlett/heimdall/version"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 )

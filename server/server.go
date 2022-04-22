@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Evan Hazlett
+	Copyright 2022 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -574,9 +574,6 @@ func (s *Server) reconfigureRedis(ctx context.Context, localIP string, masterRed
 				return err
 			}
 		}
-		//if err := s.redisCmd.Process.Kill(); err != nil {
-		//	logrus.WithError(err).Warn("error stopping redis")
-		//}
 		time.Sleep(time.Second * 1)
 	}
 	// configure replica

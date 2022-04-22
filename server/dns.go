@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Evan Hazlett
+	Copyright 2022 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -63,7 +63,10 @@ func (s *Server) dnsQueryHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 	// resolve by node first then peers
 	logrus.Debugf("dns: looking up %s", name)
-	var recordIP net.IP
+	var (
+		gatewayIP net.IP
+		recordIPs []net.IP
+	)
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
@@ -74,12 +77,12 @@ func (s *Server) dnsQueryHandler(w dns.ResponseWriter, r *dns.Msg) {
 	for _, n := range nodes {
 		if n.Name == name {
 			logrus.Debugf("gateway node: %+v", n)
-			recordIP = net.ParseIP(n.GatewayIP)
+			gatewayIP = net.ParseIP(n.GatewayIP)
 			break
 		}
 	}
 
-	if recordIP == nil {
+	if gatewayIP == nil {
 		peers, err := s.getPeers(ctx)
 		if err != nil {
 			logrus.WithError(err).Error("error getting nodes")
@@ -88,14 +91,13 @@ func (s *Server) dnsQueryHandler(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		for _, p := range peers {
 			if p.Name == name {
-				recordIP = net.ParseIP(p.PeerIP)
-				break
+				recordIPs = append(recordIPs, net.ParseIP(p.PeerIP))
 			}
 		}
 	}
 
 	// forward if empty
-	if recordIP == nil {
+	if gatewayIP == nil && len(recordIPs) == 0 {
 		x, err := dns.Exchange(r, s.cfg.DNSUpstreamAddress)
 		if err != nil {
 			logrus.Errorf("dns: error forwarding lookup: %+v", err)
@@ -113,16 +115,29 @@ func (s *Server) dnsQueryHandler(w dns.ResponseWriter, r *dns.Msg) {
 	m.Answer = []dns.RR{}
 	m.Extra = []dns.RR{}
 
-	records := []dns.RR{
-		&dns.A{
+	records := []dns.RR{}
+	if gatewayIP != nil {
+		records = append(records, &dns.A{
 			Hdr: dns.RR_Header{
 				Name:   fqdn(name),
 				Rrtype: dns.TypeA,
 				Class:  dns.ClassINET,
 				Ttl:    10,
 			},
-			A: recordIP,
-		},
+			A: gatewayIP,
+		})
+	}
+
+	for _, r := range recordIPs {
+		records = append(records, &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   fqdn(name),
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    10,
+			},
+			A: r,
+		})
 	}
 
 	m.Answer = records

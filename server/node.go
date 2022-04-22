@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Evan Hazlett
+	Copyright 2022 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -178,7 +178,7 @@ func (s *Server) configureNode() error {
 		return err
 	}
 
-	logrus.Debug("joining cluster master %+v", master)
+	logrus.Debugf("joining cluster master %+v", master)
 
 	if err := s.joinMaster(&master); err != nil {
 		return err

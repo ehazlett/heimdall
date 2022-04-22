@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Evan Hazlett
+	Copyright 2022 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -28,7 +28,7 @@ var (
 	Name = "heimdall"
 
 	// Version defines the application version
-	Version = "0.1.0"
+	Version = "0.2.0"
 
 	// Description is the application description
 	Description = "darknet router"

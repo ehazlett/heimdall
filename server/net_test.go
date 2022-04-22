@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Evan Hazlett
+	Copyright 2022 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -23,7 +23,6 @@ package server
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/ehazlett/heimdall"
@@ -35,15 +34,11 @@ const (
 )
 
 func TestNetSuite(t *testing.T) {
-	redisURL := os.Getenv("TEST_REDIS_URL")
-	if redisURL == "" {
-		t.Skip("TEST_REDIS_URL env var must be set")
-	}
 	cfg := &heimdall.Config{
 		ID:          "test",
-		RedisURL:    redisURL,
 		NodeNetwork: testNodeNetwork,
 		PeerNetwork: testPeerNetwork,
+		DataDir:     "/tmp/heimdall-test",
 	}
 
 	srv, err := NewServer(cfg)

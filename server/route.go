@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Evan Hazlett
+	Copyright 2022 Evan Hazlett
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in the
@@ -24,11 +24,11 @@ package server
 import (
 	"context"
 
+	v1 "github.com/ehazlett/heimdall/api/v1"
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
-	v1 "github.com/ehazlett/heimdall/api/v1"
 )
 
 // CreateRoute reserves a new route
