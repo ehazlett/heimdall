@@ -37,7 +37,7 @@ var (
 dir {{ .DataDir }}
 bind {{ .ListenAddr }}
 port {{ .Port }}
-protected-mode yes
+protected-mode no
 timeout 0
 tcp-keepalive 300
 daemonize no
